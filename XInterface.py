@@ -22,7 +22,6 @@ from Xlib.protocol import rq, event
 import conf
 import CONSTANTS
 
-logging.basicConfig(level=conf.logging_level)
 MainLogger = logging.getLogger('Xpander')
 Logger = MainLogger.getChild(__name__)
 
@@ -360,8 +359,8 @@ class Interface(object):
 							try:
 								keysym_set.add(int(key.group(1), 16))
 							except:
-								Logger.exception('Error building keysym set.'
-								'Cannot find keysym value.')
+								#~ Logger.exception('Error building keysym set.'
+								#~ 'Cannot find keysym value.')
 								pass
 						try:
 							keysym_set_shift.add(getattr(
@@ -370,8 +369,8 @@ class Interface(object):
 							try:
 								keysym_set_shift.add(int(key.group(2), 16))
 							except:
-								Logger.exception('Error building keysym set.'
-								'Cannot find keysym value.')
+								#~ Logger.exception('Error building keysym set.'
+								#~ 'Cannot find keysym value.')
 								pass
 						try:
 							keysym_set_alt.add(getattr(
@@ -380,8 +379,8 @@ class Interface(object):
 							try:
 								keysym_set_alt.add(int(key.group(3), 16))
 							except:
-								Logger.exception('Error building keysym set.'
-								'Cannot find keysym value.')
+								#~ Logger.exception('Error building keysym set.'
+								#~ 'Cannot find keysym value.')
 								pass
 						try:
 							keysym_set_alt_shift.add(getattr(
@@ -390,8 +389,8 @@ class Interface(object):
 							try:
 								keysym_set_alt_shift.add(int(key.group(4), 16))
 							except:
-								Logger.exception('Error building keysym set.'
-								'Cannot find keysym value.')
+								#~ Logger.exception('Error building keysym set.'
+								#~ 'Cannot find keysym value.')
 								pass
 
 		if includes:
