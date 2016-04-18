@@ -2,12 +2,12 @@
 # You shouldn't edit this file directly.
 
 from Xlib import XK
-
-_keysymdef = __import__('KEYSYMDEF')
-_keysyms = [n for n in dir(_keysymdef)]
+from . import KEYSYMDEF
+_keysyms = [name for name in dir(KEYSYMDEF)]
 for keysym in _keysyms:
-	XK.__dict__[keysym] = _keysymdef.__dict__[keysym]
-del _keysymdef
+	XK.__dict__[keysym] = KEYSYMDEF.__dict__[keysym]
+del KEYSYMDEF
+
 XK.load_keysym_group('miscellany')
 XK.load_keysym_group('latin1')
 XK.load_keysym_group('latin2')

@@ -19,8 +19,7 @@ from gi.repository import Gtk, Gdk
 from Xlib import X, display
 from Xlib.ext import record
 from Xlib.protocol import rq, event
-import conf
-import CONSTANTS
+from . import conf, CONSTANTS
 
 MainLogger = logging.getLogger('Xpander')
 Logger = MainLogger.getChild(__name__)
@@ -79,7 +78,7 @@ class Interface(object):
 			events to pass.
 	"""
 
-	def __init__(self, callback):
+	def __init__(self):
 		"""Initialize layout watcher, event hook and event loop.
 
 			Arguments:
@@ -93,11 +92,9 @@ class Interface(object):
 			modifiers keys are <Shift>, <AltGr>, <Alt>, <Control> and <Super>.
 		"""
 
-		self.__callback = callback
-
 		# Main loop
 		self._main_loop = threading.Thread(
-			target=self.__main_loop, name='Main Loop')  # , daemon=True)
+			target=self.__main_loop, name='Main Loop', daemon=True)
 		self.__queue = queue.Queue()
 
 		# Layout watching and managing
@@ -156,10 +153,13 @@ class Interface(object):
 								X.Mod3MapIndex: X.Mod3Mask,
 								X.Mod4MapIndex: X.Mod4Mask,
 								X.Mod5MapIndex: X.Mod5Mask}
-		self.__MODIFIER_MASK = {'AltMask': 0,
-								'AltGrMask': 0,
-								'SuperMask': 0,
-								'NumLockMask': 0}
+		self.MODIFIER_MASK = {'NoModifier': 0,
+							'<Shift>': X.ShiftMask,
+							'<Control>': X.ControlMask,
+							'<Alt>': 0,
+							'<AltGr>': 0,
+							'<Super>': 0,
+							'<NumLock>': 0}
 		self.__set_modifier_masks()
 		# Get available keysyms for each layout.
 		self.__KEYSYMS = {}
@@ -183,16 +183,19 @@ class Interface(object):
 
 		# Clipboard
 		self.__clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
+		self.__selection = Gtk.Clipboard.get(Gdk.SELECTION_PRIMARY)
 		self.clipboard_contents = ''
-		self.backup_clipboard()
+		self.store_clipboard()
+		self.selection_contents = ''
+		self.store_selection()
 		# Define paste methods
 		self.__paste_method = {
 			0: (self.lookup_keycode(CONSTANTS.XK.XK_v),
-				(X.ControlMask)),
+				(self.MODIFIER_MASK['<Control>'])),
 			1: (self.lookup_keycode(CONSTANTS.XK.XK_v),
-				(X.ControlMask | X.ShiftMask)),
+				(self.MODIFIER_MASK['<Control>'] | self.MODIFIER_MASK['<Shift>'])),
 			2: (self.lookup_keycode(CONSTANTS.XK.XK_Insert),
-				(X.ShiftMask))}
+				(self.MODIFIER_MASK['<Shift>']))}
 
 	def __enqueue(self, method, *args):
 		"""Put method and args in queue for execution in event loop."""
@@ -227,7 +230,7 @@ class Interface(object):
 		watch = True
 		try:
 			while self.__xkb_run:
-				while watch:
+				if watch:
 					self.__xkb_switch = subprocess.Popen(
 						['xkb-switch', '-w', '-p'],
 						stdout=subprocess.PIPE,
@@ -483,24 +486,24 @@ class Interface(object):
 		if keysym not in CONSTANTS.NO_INDEX:
 			keysym = self.keycode_to_keysym(keycode, index)
 
-		self.__callback(keysym, keypress, modifiers)
+		conf._service(keysym, keypress, modifiers)
 
 	def __set_modifier_masks(self):
-		"""Parse self.__MODIFIER_MAP and update self.__MODIFIER_MASK."""
+		"""Parse self.__MODIFIER_MAP and update self.MODIFIER_MASK."""
 
 		for index, mask in self.__MODIFIER_INDEX.items():
 			keylist = [self.keycode_to_keysym(key, 0)
 						for key in self.__MODIFIER_MAP[index]]
 			if ((CONSTANTS.XK.XK_Alt_L in keylist) or
 				(CONSTANTS.XK.XK_Alt_R in keylist)):
-				self.__MODIFIER_MASK['AltMask'] = mask
+				self.MODIFIER_MASK['<Alt>'] = mask
 			elif CONSTANTS.XK.XK_ISO_Level3_Shift in keylist:
-				self.__MODIFIER_MASK['AltGrMask'] = mask
+				self.MODIFIER_MASK['<AltGr>'] = mask
 			elif ((CONSTANTS.XK.XK_Super_L in keylist) or
 				(CONSTANTS.XK.XK_Super_R in keylist)):
-				self.__MODIFIER_MASK['SuperMask'] = mask
+				self.MODIFIER_MASK['<Super>'] = mask
 			elif CONSTANTS.XK.XK_Num_Lock in keylist:
-				self.__MODIFIER_MASK['NumLockMask'] = mask
+				self.MODIFIER_MASK['<NumLock>'] = mask
 
 	def __translate_state(self, state, keycode, _modifiers={}):
 		"""Parse keyboard event state flags and return modifier index and dict.
@@ -509,23 +512,23 @@ class Interface(object):
 		"""
 
 		index = 0
-		if (((state & X.ShiftMask) ^ (state & X.LockMask)) and
+		if (((state & self.MODIFIER_MASK['<Shift>']) ^ (state & X.LockMask)) and
 			keycode not in self.__KEYPAD_CODES):
 			index += 1
-			if state & X.ShiftMask:
+			if state & self.MODIFIER_MASK['<Shift>']:
 				_modifiers['<Shift>'] = True
 		else:
 			_modifiers['<Shift>'] = False
-		if ((state & self.__MODIFIER_MASK['AltGrMask']) and
+		if ((state & self.MODIFIER_MASK['<AltGr>']) and
 			keycode not in self.__KEYPAD_CODES):
 			index += 4
 			_modifiers['<AltGr>'] = True
 		else:
 			_modifiers['<AltGr>'] = False
-		if (state & self.__MODIFIER_MASK['NumLockMask'] and
+		if (state & self.MODIFIER_MASK['<NumLock>'] and
 			keycode in self.__KEYPAD_CODES):
 			index += 7
-		if state & self.__MODIFIER_MASK['AltMask']:
+		if state & self.MODIFIER_MASK['<Alt>']:
 			_modifiers['<Alt>'] = True
 		else:
 			_modifiers['<Alt>'] = False
@@ -533,7 +536,7 @@ class Interface(object):
 			_modifiers['<Control>'] = True
 		else:
 			_modifiers['<Control>'] = False
-		if state & self.__MODIFIER_MASK['SuperMask']:
+		if state & self.MODIFIER_MASK['<Super>']:
 			_modifiers['<Super>'] = True
 		else:
 			_modifiers['<Super>'] = False
@@ -567,7 +570,7 @@ class Interface(object):
 		"""Return str character for given int keysym.
 
 			If there's no printable character for given keysym, return str
-			name of given keysym. If name is not found return int keysym.
+			name of given keysym. If name is not found return empty string.
 		"""
 
 		if keysym in _cache:
@@ -575,13 +578,17 @@ class Interface(object):
 
 		if keysym in CONSTANTS.PRINTABLE:
 			string = CONSTANTS.PRINTABLE[keysym]
+		elif keysym == CONSTANTS.XK.XK_Return:
+			string = '\n'
+		elif keysym == CONSTANTS.XK.XK_Tab:
+			string = '\t'
 		else:
 			for name in dir(CONSTANTS.XK):
 				if getattr(CONSTANTS.XK, name) == keysym:
 					string = name
 					break
 			else:
-				string = keysym
+				string = ''
 		_cache[keysym] = string
 
 		return string
@@ -625,11 +632,11 @@ class Interface(object):
 			if (wm_class is None or wm_class == ''):
 				return self.get_window_class(window.query_tree().parent)
 		except:
-			Logger.exception('Cannot determine window class. '
-			'Window {0}, {1}'.format(window, type(window)))
+			#~ Logger.exception('Cannot determine window class. '
+			#~ 'Window {0}, {1}'.format(window, type(window)))
 			return ''
-		Logger.debug('Active window class {0}.{1}.'.format(
-			wm_class[0], wm_class[1]))
+		#~ Logger.debug('Active window class {0}.{1}.'.format(
+			#~ wm_class[0], wm_class[1]))
 
 		return '{0}.{1}'.format(wm_class[0], wm_class[1])
 
@@ -644,13 +651,13 @@ class Interface(object):
 			if atom is None:
 				atom = window.get_property(self.__name_atom, 0, 0, 255)
 			if atom:
-				Logger.debug('Active window title {}.'.format(atom.value))
+				#~ Logger.debug('Active window title {}.'.format(atom.value))
 				return atom.value
 			else:
 				return self.get_window_title(window.query_tree().parent)
 		except:
-			Logger.exception('Cannot determine window title. '
-			'Window {0}, {1}'.format(window, type(window)))
+			#~ Logger.exception('Cannot determine window title. '
+			#~ 'Window {0}, {1}'.format(window, type(window)))
 			return ''
 
 	def grab_keyboard(self):
@@ -667,6 +674,27 @@ class Interface(object):
 			True, X.GrabModeAsync, X.GrabModeAsync, X.CurrentTime)
 		self.__local_display.flush()
 
+	def grab_key(self, keycode, modifier_mask):
+		"""Passively grab key."""
+
+		self.__enqueue(self.__grab_key, keycode, modifier_mask)
+
+	def __grab_key(self, keycode, modifier_mask):
+		"""See grab_key()"""
+
+		self.root_window.grab_key(
+			keycode, modifier_mask, False, X.GrabModeAsync, X.GrabModeAsync)
+
+	def ungrab_key(self, keycode, modifier_mask):
+		"""Release passive key grab."""
+
+		self.__enqueue(self.__ungrab_key, keycode, modifier_mask)
+
+	def __ungrab_key(self, keycode, modifier_mask):
+		"""See ungrab_key()"""
+
+		self.root_window.ungrab_key(keycode, modifier_mask)
+
 	def ungrab_keyboard(self):
 		"""Release active keyboard grabs, allowing keyboard events to pass"""
 
@@ -681,7 +709,7 @@ class Interface(object):
 	def lookup_keysym(self, string, _cache={}):
 		"""Return int keysym for given string.
 
-			string must be a single unicode character.
+			string must be a single unicode character or a name of the keysym.
 		"""
 
 		if string in _cache:
@@ -703,8 +731,13 @@ class Interface(object):
 				_cache[string] = CONSTANTS.XK.XK_Return
 				return CONSTANTS.XK.XK_Return
 			else:
-				_cache[string] = 0
-				return 0
+				for name in dir(CONSTANTS.XK):
+					if name == string:
+						_cache[string] = getattr(CONSTANTS.XK, name)
+						return getattr(CONSTANTS.XK, name)
+				else:
+					_cache[string] = 0
+					return 0
 
 	def keysym_to_keycode(self, keysym=0, clear_cache=False, _cache={}):
 		"""Return tuple of ints.
@@ -732,17 +765,18 @@ class Interface(object):
 				_cache[keysym] = keycode, state
 				return keycode, state
 			elif keysym in self.__KEYSYMS[layout[0] + '_Shift']:
-				state |= X.ShiftMask | (layout_mask * index)
+				state |= self.MODIFIER_MASK['<Shift>'] | (layout_mask * index)
 				_cache[keysym] = keycode, state
 				return keycode, state
 			elif keysym in self.__KEYSYMS[layout[0] + '_Alt']:
 				state |= (
-					self.__MODIFIER_MASK['AltGrMask'] | (layout_mask * index))
+					self.MODIFIER_MASK['<AltGr>'] | (layout_mask * index))
 				_cache[keysym] = keycode, state
 				return keycode, state
 			elif keysym in self.__KEYSYMS[layout[0] + '_Alt_Shift']:
 				state |= (
-					self.__MODIFIER_MASK['AltGrMask'] | X.ShiftMask | (layout_mask * index))
+					self.MODIFIER_MASK['<AltGr>'] |
+					self.MODIFIER_MASK['<Shift>'] | (layout_mask * index))
 				_cache[keysym] = keycode, state
 				return keycode, state
 		else:
@@ -830,7 +864,7 @@ class Interface(object):
 		self.__send_key_release(*self.__paste_method[method])
 		self.__ungrab_keyboard()
 
-	def backup_clipboard(self):
+	def store_clipboard(self):
 		"""Store clipboard contents in self.clipboard_contents."""
 
 		contents = self.__clipboard.wait_for_text()
@@ -838,10 +872,18 @@ class Interface(object):
 			contents = ''
 		self.clipboard_contents = contents
 
+	def store_selection(self):
+		"""Store primary selection contents in self.selection_contents."""
+
+		contents = self.__selection.wait_for_text()
+		if contents is None:
+			contents = ''
+		self.selection_contents = contents
+
 	def __send_string_clipboard(self, string, method):
 		"""See send_string_clipboard."""
 
-		self.backup_clipboard()
+		self.store_clipboard()
 		self.__clipboard.set_text(string, -1)
 		self.__clipboard.store()
 		self.__send_paste(method)
@@ -856,8 +898,30 @@ class Interface(object):
 
 		backspace = self.lookup_keycode(CONSTANTS.XK.XK_BackSpace)
 		for i in range(count):
+			self.grab_keyboard()
 			self.send_key_press(backspace, 0)
 			self.send_key_release(backspace, 0)
+			self.ungrab_keyboard()
+
+	def caret_left(self, count):
+		"""Send left keypress given number of times."""
+
+		left = self.lookup_keycode(CONSTANTS.XK.XK_Left)
+		for i in range(count):
+			self.grab_keyboard()
+			self.send_key_press(left, 0)
+			self.send_key_release(left, 0)
+			self.ungrab_keyboard()
+
+	def caret_right(self, count):
+		"""Send right keypress given number of times."""
+
+		right = self.lookup_keycode(CONSTANTS.XK.XK_Right)
+		for i in range(count):
+			self.grab_keyboard()
+			self.send_key_press(right, 0)
+			self.send_key_release(right, 0)
+			self.ungrab_keyboard()
 
 	def start(self):
 		"""Run event loop, layout watcher and event hook threads."""
