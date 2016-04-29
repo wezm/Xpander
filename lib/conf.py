@@ -24,5 +24,8 @@ _hotkeys = [('\t', ['NoModifier'])]
 pause_service = ('p', ('<Shift>', '<Super>'))
 show_manager = ('m', ('<Shift>', '<Super>'))
 
+# GUI
+warn_folder_delete = True
+
 # XInterface
 window_title_lazy = True

@@ -54,7 +54,7 @@ class Conf(object):
 		"""
 
 		self.config = {}
-		self.__user_config_path = os.path.join(conf._config_dir, 'config.json')
+		self.__user_config_path = os.path.join(conf._config_dir, 'Xpander.json')
 		self.__json_types = (
 			str, bool, int, float, list, tuple, dict, type(None))
 
@@ -70,8 +70,10 @@ class Conf(object):
 			except:
 				Logger.exception('Cannot create user configuration directory tree.')
 
-		conf._hotkeys.append(conf.pause_service)
-		conf._hotkeys.append(conf.show_manager)
+		if conf.pause_service:
+			conf._hotkeys.append(conf.pause_service)
+		if conf.show_manager:
+			conf._hotkeys.append(conf.show_manager)
 
 	def read_defaults(self):
 		"""Read default configuration into config."""
@@ -130,11 +132,15 @@ class Conf(object):
 		"""Replace value of given key, load it to conf and save to config.json"""
 
 		if key == 'pause_service':
-			ungrab_hotkey(conf.pause_service)
-			grab_hotkey(value)
+			if conf.pause_service:
+				ungrab_hotkey(conf.pause_service)
+			if value:
+				grab_hotkey(value)
 		if key == 'show_manager':
-			ungrab_hotkey(conf.show_manager)
-			grab_hotkey(value)
+			if conf.show_manager:
+				ungrab_hotkey(conf.show_manager)
+			if value:
+				grab_hotkey(value)
 
 		self.config[key] = value
 		self.load()
@@ -181,15 +187,35 @@ class Phrases(object):
 					p_file.write(json.dumps(phrase, indent='\t', sort_keys=True))
 
 	def new(
-		self, name, body, path='.', script=False, send=(0, 0), hotstring=None,
+		self, name, body='', path='.', script=False, send=(1, 0), hotstring=None,
 		trigger=0, hotkey=None, window_class=None, window_title=None):
-		"""Construct new phrase, add it to phrase dict and save to file."""
+		"""Construct new phrase, add it to phrase dict and save to file.
+
+			name is a string file name;
+			path is a string path relative to conf.phrases_dir;
+			body is a string body of the phrase or command to execute,
+				depending on script value;
+			script is a boolean, if true body is treated as command to execute,
+				else body is pasted directly;
+			send is a tuple, first member determines wether to send via
+				keyboard (0) or clipboard (1), second member currently only
+				applies to clipboard, determines which keys to use:
+					<Control>v (0), <Control><Shift>v (1), <Shift>Insert (2);
+			hotstring is a string abbreviation to trigger expansion;
+			trigger is an integer, determines which keys trigger expansion:
+				all non-word chars (0), Space and Enter (1), Tab (2);
+			hotkey is a tuple, first member is string name of the key,
+				second member is a tuple of string names of modifiers;
+			window_class is a tuple of string window classes to match;
+			window_title is a tuple, first member is string to match,
+				second member is boolean wether match is case-sensitive.
+		"""
 
 		if hotkey is not None:
 			grab_hotkey(hotkey)
 
 		file_path = os.path.join(conf.phrases_dir, path, name)
-		p_uuid = int(uuid.uuid3(uuid.NAMESPACE_URL, file_path))
+		p_uuid = str(uuid.uuid1())
 		phrase = {
 			'uuid': p_uuid,
 			'name': name,
@@ -212,35 +238,35 @@ class Phrases(object):
 		return p_uuid
 
 	def edit(
-		self, p_uuid, name=None, body=None, path=None, script=None, send=None,
-		hotstring=None, trigger=None, hotkey=None, window_class=None,
-		window_title=None):
+		self, p_uuid, name='KEEP', body='KEEP', path='KEEP', script='KEEP',
+		send='KEEP', hotstring='KEEP', trigger='KEEP', hotkey='KEEP',
+		window_class='KEEP', window_title='KEEP'):
 		"""Edit phrase, update phrase dict and replace phrase file."""
 
-		if hotkey is not None:
+		if hotkey != 'KEEP' and hotkey is not None:
 			if conf._phrases[p_uuid]['hotkey'] is not None:
 				ungrab_hotkey(conf._phrases[p_uuid]['hotkey'])
 			grab_hotkey(hotkey)
 
 		phrase = {
 			'uuid': p_uuid,
-			'name': name if name is not None else conf._phrases[p_uuid]['name'],
-			'body': body if body is not None else conf._phrases[p_uuid]['body'],
-			'path': path if path is not None else conf._phrases[p_uuid]['path'],
-			'script': (script if script is not None
+			'name': name if name != 'KEEP' else conf._phrases[p_uuid]['name'],
+			'body': body if body != 'KEEP' else conf._phrases[p_uuid]['body'],
+			'path': path if path != 'KEEP' else conf._phrases[p_uuid]['path'],
+			'script': (script if script != 'KEEP'
 				else conf._phrases[p_uuid]['script']),
-			'send': send if send is not None else conf._phrases[p_uuid]['send'],
-			'hotstring': (hotstring if hotstring is not None
+			'send': send if send != 'KEEP' else conf._phrases[p_uuid]['send'],
+			'hotstring': (hotstring if hotstring != 'KEEP'
 				else conf._phrases[p_uuid]['hotstring']),
-			'trigger': (trigger if trigger is not None
+			'trigger': (trigger if trigger != 'KEEP'
 				else conf._phrases[p_uuid]['trigger']),
-			'hotkey': (hotkey if hotkey is not None
+			'hotkey': (hotkey if hotkey != 'KEEP'
 				else conf._phrases[p_uuid]['hotkey']),
-			'window_class': (window_class if window_class is not None
+			'window_class': (window_class if window_class != 'KEEP'
 				else conf._phrases[p_uuid]['window_class']),
-			'window_title': (window_title if window_title is not None
+			'window_title': (window_title if window_title != 'KEEP'
 				else conf._phrases[p_uuid]['window_title']),
-			'timestamp': time.time()}
+			'timestamp': int(time.time())}
 
 		move = False
 		if (phrase['path'] != conf._phrases[p_uuid]['path'] or
@@ -256,13 +282,13 @@ class Phrases(object):
 				phrase['name']))
 
 		conf._phrases[p_uuid] = phrase
+		if move:
+			os.renames(old_path, new_path)
+
 		with open(os.path.abspath(os.path.join(conf.phrases_dir,
 			conf._phrases[p_uuid]['path'],
 			conf._phrases[p_uuid]['name'])), 'w') as p_file:
 			p_file.write(json.dumps(phrase, indent='\t', sort_keys=True))
-
-		if move:
-			os.renames(old_path, new_path)
 
 	def remove(self, p_uuid):
 		"""Remove phrase from phrases dict and delete phrase file."""

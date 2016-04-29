@@ -15,7 +15,7 @@ import threading
 import queue
 import logging
 import gi
-from gi.repository import Gtk, Gdk
+from gi.repository import Gtk, Gdk, GLib
 from Xlib import X, display
 from Xlib.ext import record
 from Xlib.protocol import rq, event
@@ -24,8 +24,7 @@ from . import conf, CONSTANTS
 MainLogger = logging.getLogger('Xpander')
 Logger = MainLogger.getChild(__name__)
 
-# Ensure PyGObject verion allows thread safe opperations without
-# initializing threading explicitly.
+# Ensure PyGObject verion doesn't require initializing threading explicitly.
 GI_VERSION_MAJOR = gi.version_info[0]
 GI_VERSION_MINOR = float('{0}.{1}'.format(
 	gi.version_info[1], gi.version_info[2]))
@@ -34,6 +33,8 @@ Logger.info('PyGObject version {0}.{1}'.format(
 if GI_VERSION_MINOR < 10.2:
 	Logger.critical('Unsupported PyGObject version.')
 	sys.exit(1)
+
+LAYOUT_SPLIT = re.compile(r'(\w+)(?:\((\w+)\))?')
 
 
 class Interface(object):
@@ -108,9 +109,12 @@ class Interface(object):
 		if not xkbmap[3].startswith('variant:'):
 			variants = ['' for l in layouts]
 		self.xkb_layouts = tuple(zip(layouts, variants))
-		self.xkb_current = subprocess.check_output(
+		output = subprocess.check_output(
 			['xkb-switch'],
 			universal_newlines=True).strip()
+		current_layout = LAYOUT_SPLIT.match(output).groups()
+		self.xkb_current = (current_layout[0], (current_layout[1]
+			if current_layout[1] else ''))
 		self.__xkb_run = True
 		Logger.debug('Available layouts {}.'.format(self.xkb_layouts))
 		Logger.debug('Currently active layout group: {}.'.format(
@@ -235,8 +239,11 @@ class Interface(object):
 						['xkb-switch', '-w', '-p'],
 						stdout=subprocess.PIPE,
 						universal_newlines=True)
-					self.xkb_current = self.__xkb_switch.stdout.readline(
+					output = self.__xkb_switch.stdout.readline(
 					).strip('\n')
+					current_layout = LAYOUT_SPLIT.match(output).groups()
+					self.xkb_current = (current_layout[0], (current_layout[1]
+						if current_layout[1] else ''))
 					if self.__xkb_run:
 						Logger.debug('Currently active layout group: {}.'.format(
 							self.xkb_current))
@@ -263,7 +270,7 @@ class Interface(object):
 
 		transient = list(self.xkb_layouts)
 		for layout in transient[:]:
-			if layout[0] == self.xkb_current:
+			if layout == self.xkb_current:
 				transient.remove(layout)
 				transient.insert(0, layout)
 				break
@@ -299,7 +306,10 @@ class Interface(object):
 		self.__restore_layouts()
 		# Use xkb-switch to actually switch layout.
 		Logger.debug('Switching active layout.')
-		subprocess.call(['xkb-switch', '-s', self.xkb_current])
+		subprocess.call(
+			['xkb-switch', '-s',
+			('{0}({1})'.format(*self.xkb_current)
+				if self.xkb_current[1] else self.xkb_current[0])])
 		self.__layout_switched = True
 
 	def __restore_layouts(self):
@@ -482,7 +492,7 @@ class Interface(object):
 
 		keypress = (type_ == X.KeyPress)
 		keysym = self.keycode_to_keysym(keycode, 0)
-		index, modifiers = self.__translate_state(state, keycode)
+		index, modifiers = self.translate_state(state, keycode)
 		if keysym not in CONSTANTS.NO_INDEX:
 			keysym = self.keycode_to_keysym(keycode, index)
 
@@ -505,7 +515,7 @@ class Interface(object):
 			elif CONSTANTS.XK.XK_Num_Lock in keylist:
 				self.MODIFIER_MASK['<NumLock>'] = mask
 
-	def __translate_state(self, state, keycode, _modifiers={}):
+	def translate_state(self, state, keycode, _modifiers={}):
 		"""Parse keyboard event state flags and return modifier index and dict.
 
 			Index is used by keycode_to_keysym method and dict is sent to callback.
@@ -867,6 +877,11 @@ class Interface(object):
 	def store_clipboard(self):
 		"""Store clipboard contents in self.clipboard_contents."""
 
+		GLib.idle_add(self.__store_clipboard)
+
+	def __store_clipboard(self):
+		"""See store_clipboard."""
+
 		contents = self.__clipboard.wait_for_text()
 		if contents is None:
 			contents = ''
@@ -874,6 +889,11 @@ class Interface(object):
 
 	def store_selection(self):
 		"""Store primary selection contents in self.selection_contents."""
+
+		GLib.idle_add(self.__store_selection)
+
+	def __store_selection(self):
+		"""See store_selection."""
 
 		contents = self.__selection.wait_for_text()
 		if contents is None:
@@ -884,14 +904,14 @@ class Interface(object):
 		"""See send_string_clipboard."""
 
 		self.store_clipboard()
-		self.__clipboard.set_text(string, -1)
-		self.__clipboard.store()
+		GLib.idle_add(self.__clipboard.set_text, string, -1)
+		GLib.idle_add(self.__clipboard.store)
 		self.__send_paste(method)
 		# Add short pause to avoid overwriting string
 		# before it's actually pasted.
-		time.sleep(0.01)
-		self.__clipboard.set_text(self.clipboard_contents, -1)
-		self.__clipboard.store()
+		time.sleep(0.1)
+		GLib.idle_add(self.__clipboard.set_text, self.clipboard_contents, -1)
+		GLib.idle_add(self.__clipboard.store)
 
 	def send_backspace(self, count):
 		"""Send backspace keypress given number of times."""

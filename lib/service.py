@@ -141,7 +141,9 @@ class Service(threading.Thread):
 				# Special handling for app's global hotkeys
 				if phrase == '__pause_service':
 					try:
-						conf._menu_toggle_service.set_active(conf._run_service)
+						GLib.idle_add(
+							conf._menu_toggle_service.set_active,
+							conf._run_service)
 					except:
 						Logger.exception('Gtk error.')
 						self.toggle_service()
@@ -177,10 +179,11 @@ class Service(threading.Thread):
 			for p_uuid in conf._phrases:
 				phrase = conf._phrases[p_uuid]
 				if phrase['hotstring'] is not None:
-					if self.TRIGGER[phrase['trigger']](char):
-						if ''.join(self.input_stack)[:-1].endswith(
-							phrase['hotstring']):
-							return phrase
+					if self.match_window_filter(phrase):
+						if self.TRIGGER[phrase['trigger']](char):
+							if ''.join(self.input_stack)[:-1].endswith(
+								phrase['hotstring']):
+								return phrase
 			else:
 				return None
 
@@ -200,22 +203,24 @@ class Service(threading.Thread):
 							if len(phrase['hotkey'][1]) == modifier_match:
 								return phrase
 		# Special handling for app's global hotkeys
-		if (char == conf.pause_service[0] or
-			char.casefold() == conf.pause_service[0]):
-			modifier_match = 0
-			for modifier in conf.pause_service[1]:
-				if modifiers[modifier]:
-					modifier_match += 1
-			if len(conf.pause_service[1]) == modifier_match:
-				return '__pause_service'
-		if (char == conf.show_manager[0] or
-			char.casefold() == conf.show_manager[0]):
-			modifier_match = 0
-			for modifier in conf.show_manager[1]:
-				if modifiers[modifier]:
-					modifier_match += 1
-			if len(conf.show_manager[1]) == modifier_match:
-				return '__show_manager'
+		if conf.pause_service:
+			if (char == conf.pause_service[0] or
+				char.casefold() == conf.pause_service[0]):
+				modifier_match = 0
+				for modifier in conf.pause_service[1]:
+					if modifiers[modifier]:
+						modifier_match += 1
+				if len(conf.pause_service[1]) == modifier_match:
+					return '__pause_service'
+		if conf.show_manager:
+			if (char == conf.show_manager[0] or
+				char.casefold() == conf.show_manager[0]):
+				modifier_match = 0
+				for modifier in conf.show_manager[1]:
+					if modifiers[modifier]:
+						modifier_match += 1
+				if len(conf.show_manager[1]) == modifier_match:
+					return '__show_manager'
 
 	def trigger_phrase(self, phrase, include_char='', remove=True):
 
@@ -253,7 +258,6 @@ class Service(threading.Thread):
 		string = time.strftime(string)
 		if '$C' in string:
 			conf._interface.store_clipboard()
-			print(conf._interface.clipboard_contents)
 			string = string.replace('$C', conf._interface.clipboard_contents)
 		if '$S' in string:
 			conf._interface.store_selection()

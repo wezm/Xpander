@@ -1,0 +1,75 @@
+#!/usr/bin/env python3
+
+import os
+import sys
+import logging
+from gi.repository import Gtk, GLib, AppIndicator3
+from lib import conf, manager, service, XInterface, gtkui
+
+Logger = logging.getLogger('Xpander')
+indicator_icon_active = os.path.abspath('data/icons/dark/xpander-status-active.svg')
+indicator_icon_paused = os.path.abspath('data/icons/dark/xpander-status-paused.svg')
+
+
+class Indicator(object):
+
+	def __init__(self):
+
+		self.indicator = AppIndicator3.Indicator.new(
+			'Xpander',
+			indicator_icon_active,
+			AppIndicator3.IndicatorCategory.APPLICATION_STATUS)
+		self.indicator.set_status(AppIndicator3.IndicatorStatus.ACTIVE)
+		self.indicator.set_menu(self.build_menu())
+		self.manager_ui = gtkui.ManagerUI()
+		Gtk.main()
+
+	def build_menu(self):
+
+		menu = Gtk.Menu()
+		conf._menu_toggle_service = Gtk.CheckMenuItem('Pause Expansion')
+		conf._menu_toggle_service.connect('toggled', self.toggle_service)
+		conf._menu_show_manager = Gtk.ImageMenuItem('Manager')
+		icon_show_manager = Gtk.Image.new_from_icon_name('preferences-system', 22)
+		conf._menu_show_manager.set_image(icon_show_manager)
+		conf._menu_show_manager.connect('activate', self.show_manager)
+		menu_quit = Gtk.ImageMenuItem('Quit')
+		icon_quit = Gtk.Image.new_from_icon_name('application-exit', 22)
+		menu_quit.set_image(icon_quit)
+		menu_quit.connect('activate', self.quit)
+		menu.append(conf._menu_toggle_service)
+		menu.append(conf._menu_show_manager)
+		menu.append(menu_quit)
+		menu.show_all()
+		return menu
+
+	def toggle_service(self, menu_item):
+
+		conf._service.toggle_service()
+		if conf._run_service:
+			GLib.idle_add(self.indicator.set_icon, indicator_icon_active)
+		else:
+			GLib.idle_add(self.indicator.set_icon, indicator_icon_paused)
+
+	def show_manager(self, menu_item):
+
+		self.manager_ui.create_window()
+		self.manager_ui.show_all()
+
+	def quit(self, menu_item):
+
+		conf._interface.stop()
+		conf._service.stop()
+		Gtk.main_quit()
+		# If Gtk throws an error or just a warning, main_quit() might not
+		# actually close the app
+		sys.exit(0)
+
+conf._conf_manager = manager.Conf()
+conf._phrases_manager = manager.Phrases()
+conf._service = service.Service()
+conf._interface = XInterface.Interface()
+manager.grab_hotkeys()
+conf._service.start()
+conf._interface.start()
+Indicator()
