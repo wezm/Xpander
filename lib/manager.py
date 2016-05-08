@@ -115,7 +115,9 @@ class Conf(object):
 		"""Create user phrase directory and populate it with Phrases/Examples"""
 
 		Logger.info("Creating phrase directory.")
-		shutil.copytree('data/Phrases', conf.phrases_dir)
+		init_phrase_dir = os.path.join(
+			os.path.abspath(os.path.dirname(__file__)), 'data')
+		shutil.copytree(init_phrase_dir, conf.phrases_dir)
 		return
 
 	def write(self):

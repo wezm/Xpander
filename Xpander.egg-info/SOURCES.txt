@@ -1,0 +1,29 @@
+MANIFEST.in
+README.md
+setup.py
+xpander-indicator
+Xpander.egg-info/PKG-INFO
+Xpander.egg-info/SOURCES.txt
+Xpander.egg-info/dependency_links.txt
+Xpander.egg-info/top_level.txt
+data/xpander-active-dark.svg
+data/xpander-active.svg
+data/xpander-indicator.desktop
+data/xpander-paused-dark.svg
+data/xpander-paused.svg
+data/xpander.svg
+lib/CONSTANTS.py
+lib/KEYSYMDEF.py
+lib/XInterface.py
+lib/__init__.py
+lib/conf.py
+lib/gtkui.py
+lib/manager.py
+lib/service.py
+lib/data/Examples/Html Link.json
+lib/data/Examples/Insert Date.json
+lib/data/Examples/Insert Timestamp.json
+lib/data/Examples/Link from clipboard.json
+lib/data/Examples/Link from selection.json
+utils/constants-generator.py
+utils/keysymdef-generator.py

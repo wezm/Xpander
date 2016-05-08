@@ -1,3 +1,6 @@
 __pycache__
 scratchpad.py
 *-test.py
+Xpander*.tar.gz
+dist/*
+deb_dist/*
