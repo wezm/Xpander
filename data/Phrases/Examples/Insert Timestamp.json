@@ -1,0 +1,17 @@
+{
+	"body": "date -R",
+	"hotkey": null,
+	"hotstring": "ts",
+	"name": "Insert Timestamp.json",
+	"path": "Examples",
+	"script": true,
+	"send": [
+		1,
+		0
+	],
+	"timestamp": 1462098256,
+	"trigger": 2,
+	"uuid": "cdaac684-0f86-11e6-8875-00224303a87d",
+	"window_class": null,
+	"window_title": null
+}

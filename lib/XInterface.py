@@ -906,6 +906,7 @@ class Interface(object):
 		self.store_clipboard()
 		GLib.idle_add(self.__clipboard.set_text, string, -1)
 		GLib.idle_add(self.__clipboard.store)
+		time.sleep(0.05)
 		self.__send_paste(method)
 		# Add short pause to avoid overwriting string
 		# before it's actually pasted.

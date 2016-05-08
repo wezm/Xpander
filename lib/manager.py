@@ -70,6 +70,9 @@ class Conf(object):
 			except:
 				Logger.exception('Cannot create user configuration directory tree.')
 
+		if not os.path.isdir(conf.phrases_dir):
+			self.create_user_phrases()
+
 		if conf.pause_service:
 			conf._hotkeys.append(conf.pause_service)
 		if conf.show_manager:
@@ -100,21 +103,20 @@ class Conf(object):
 	def create_user_config(self):
 		"""Create user configuration directory tree with default values."""
 
-		if os.path.isfile(self.__user_config_path):
-			if not os.path.isdir(conf.phrases_dir):
-				Logger.info("Creating phrases' directory.")
-				os.makedirs(conf.phrases_dir, exist_ok=True)
-				return
-		else:
+		if not os.path.isfile(self.__user_config_path):
 			if not os.path.isdir(conf._config_dir):
 				Logger.info('Creating configuration directory.')
 				os.makedirs(conf._config_dir, exist_ok=True)
 			Logger.info('Writing initial configuration.')
 			self.write()
-			if not os.path.isdir(conf.phrases_dir):
-				Logger.info("Creating phrases' directory.")
-				shutil.copytree('Phrases', conf.phrases_dir)
-			return
+		return
+
+	def create_user_phrases(self):
+		"""Create user phrase directory and populate it with Phrases/Examples"""
+
+		Logger.info("Creating phrase directory.")
+		shutil.copytree('data/Phrases', conf.phrases_dir)
+		return
 
 	def write(self):
 		"""Write configuration stored in config to conf._config_dir/config.json.

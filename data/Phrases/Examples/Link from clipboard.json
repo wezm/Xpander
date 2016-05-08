@@ -1,0 +1,17 @@
+{
+	"body": "<a href=\"$C\">$|</a>",
+	"hotkey": null,
+	"hotstring": "lc",
+	"name": "Link from clipboard.json",
+	"path": "Examples",
+	"script": false,
+	"send": [
+		1,
+		0
+	],
+	"timestamp": 1462097451,
+	"trigger": 2,
+	"uuid": "d42fedba-0f84-11e6-8875-00224303a87d",
+	"window_class": null,
+	"window_title": null
+}

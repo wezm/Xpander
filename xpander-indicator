@@ -4,11 +4,14 @@ import os
 import sys
 import logging
 from gi.repository import Gtk, GLib, AppIndicator3
-from lib import conf, manager, service, XInterface, gtkui
 
 Logger = logging.getLogger('Xpander')
-indicator_icon_active = os.path.abspath('data/icons/dark/xpander-status-active.svg')
-indicator_icon_paused = os.path.abspath('data/icons/dark/xpander-status-paused.svg')
+
+try:
+	from Xpander import conf, manager, service, XInterface, gtkui
+except ImportError:
+	Logger.exception('Running from source.')
+	from lib import conf, manager, service, XInterface, gtkui
 
 
 class Indicator(object):
@@ -17,7 +20,7 @@ class Indicator(object):
 
 		self.indicator = AppIndicator3.Indicator.new(
 			'Xpander',
-			indicator_icon_active,
+			indicator_active,
 			AppIndicator3.IndicatorCategory.APPLICATION_STATUS)
 		self.indicator.set_status(AppIndicator3.IndicatorStatus.ACTIVE)
 		self.indicator.set_menu(self.build_menu())
@@ -47,9 +50,9 @@ class Indicator(object):
 
 		conf._service.toggle_service()
 		if conf._run_service:
-			GLib.idle_add(self.indicator.set_icon, indicator_icon_active)
+			GLib.idle_add(self.indicator.set_icon, indicator_active)
 		else:
-			GLib.idle_add(self.indicator.set_icon, indicator_icon_paused)
+			GLib.idle_add(self.indicator.set_icon, indicator_paused)
 
 	def show_manager(self, menu_item):
 
@@ -66,10 +69,29 @@ class Indicator(object):
 		sys.exit(0)
 
 conf._conf_manager = manager.Conf()
+
+if conf.indicator_theme_light:
+	if os.path.exists('data/xpander-active.svg'):
+		indicator_active = os.path.abspath('data/xpander-active.svg')
+		indicator_paused = os.path.abspath('data/xpander-paused.svg')
+	else:
+		indicator_active = 'xpander-active'
+		indicator_paused = 'xpander-paused'
+else:
+	if os.path.exists('data/xpander-active-dark.svg'):
+		indicator_active = os.path.abspath('data/xpander-active-dark.svg')
+		indicator_paused = os.path.abspath('data/xpander-paused-dark.svg')
+	else:
+		indicator_active = 'xpander-active-dark'
+		indicator_paused = 'xpander-paused-dark'
+
 conf._phrases_manager = manager.Phrases()
 conf._service = service.Service()
 conf._interface = XInterface.Interface()
 manager.grab_hotkeys()
+# Necessary to actually grab tab key, hopefully focus is not
+# in a textbox during startup.
+conf._interface.send_string('\t')
 conf._service.start()
 conf._interface.start()
 Indicator()

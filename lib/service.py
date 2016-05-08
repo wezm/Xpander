@@ -105,8 +105,13 @@ class Service(threading.Thread):
 				elif char == 'XK_BackSpace':
 					if conf.backspace_undo:
 						if self.__last_expanded:
+							if self.__caret_pos:
+								for caret_pos in self.__caret_pos:
+									conf._interface.caret_right(caret_pos)
+								self.__caret_pos = None
 							conf._interface.send_backspace(
-								len(self.__last_expanded))
+								len(self.__last_expanded) - 1)
+							self.__last_expanded = None
 					try:
 						self.input_stack.pop()
 					except IndexError:
@@ -154,7 +159,7 @@ class Service(threading.Thread):
 						Logger.exception('Gtk error.')
 				elif phrase:
 					self.trigger_phrase(phrase, remove=False)
-					self.__last_expanded = None
+					#~ self.__last_expanded = None
 
 	def match_window_filter(self, phrase):
 
@@ -240,14 +245,14 @@ class Service(threading.Thread):
 			if remove:
 				conf._interface.send_backspace(
 					len(phrase['hotstring']) + len(include_char))
-			self.__last_expanded = output
+			self.__last_expanded = output.strip() + include_char
 			self.send_string(output.strip() + include_char, phrase['send'])
 		else:
 			if remove:
 				conf._interface.send_backspace(
 					len(phrase['hotstring']) + (len(include_char)))
 			string = self.expand(phrase['body'])
-			self.__last_expanded = string
+			self.__last_expanded = string +include_char
 			self.send_string(string + include_char, phrase['send'])
 			if self.__caret_pos:
 				time.sleep(0.05)  # Events may get lost without a pause.

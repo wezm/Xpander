@@ -16,8 +16,6 @@ from . import CONSTANTS, conf, manager
 MainLogger = logging.getLogger('Xpander')
 Logger = MainLogger.getChild(__name__)
 
-app_icon = os.path.abspath('data/icons/xpander.svg')
-
 KEY_SPLIT = re.compile(
 	r'(<[\w]+>)(<[\w]+>)?(<[\w]+>)?(<[\w]+>)?(<[\w]+>)?(\w+)')
 
@@ -54,7 +52,10 @@ class ManagerUI(Gtk.Window):
 
 	def create_window(self):
 
-		self.set_icon_from_file(app_icon)
+		if os.path.exists('data/xpander.svg'):
+			self.set_icon_from_file(os.path.abspath('data/xpander.svg'))
+		else:
+			self.set_icon_name('xpander')
 		# General layout
 		main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,
 					spacing=6)
@@ -231,29 +232,36 @@ class ManagerUI(Gtk.Window):
 		phrase_dir_label.set_mnemonic_widget(phrase_dir)
 		prefs_grid.attach(
 			phrase_dir, 3, 0, 2, 1)
+		indicator_theme_label = Gtk.Label.new_with_mnemonic(
+			'Prefer light _indicator icon theme (needs restart)')
+		prefs_grid.attach(indicator_theme_label, 0, 1, 2, 1)
+		indicator_theme = Gtk.Switch()
+		indicator_theme.set_active(conf.indicator_theme_light)
+		indicator_theme_label.set_mnemonic_widget(indicator_theme)
+		prefs_grid.attach(indicator_theme, 4, 1, 1, 1)
 		folder_warning_label = Gtk.Label.new_with_mnemonic(
 			'_Warn when deleting a folder')
-		prefs_grid.attach(folder_warning_label, 0, 1, 2, 1)
+		prefs_grid.attach(folder_warning_label, 0, 2, 2, 1)
 		folder_warning_switch = Gtk.Switch()
 		folder_warning_switch.set_active(conf.warn_folder_delete)
 		folder_warning_label.set_mnemonic_widget(folder_warning_switch)
-		prefs_grid.attach(folder_warning_switch, 4, 1, 1, 1)
+		prefs_grid.attach(folder_warning_switch, 4, 2, 1, 1)
 		backspace_undo_label = Gtk.Label.new_with_mnemonic(
 			'_Backspace undoes expansion')
-		prefs_grid.attach(backspace_undo_label, 0, 2, 2, 1)
+		prefs_grid.attach(backspace_undo_label, 0, 3, 2, 1)
 		backspace_undo = Gtk.Switch()
 		backspace_undo.set_active(conf.backspace_undo)
 		backspace_undo_label.set_mnemonic_widget(backspace_undo)
-		prefs_grid.attach(backspace_undo, 4, 2, 1, 1)
+		prefs_grid.attach(backspace_undo, 4, 3, 1, 1)
 		lazy_title_label = Gtk.Label.new_with_mnemonic(
 			'_Lazy window title matching')
-		prefs_grid.attach(lazy_title_label, 0, 3, 2, 1)
+		prefs_grid.attach(lazy_title_label, 0, 4, 2, 1)
 		lazy_title = Gtk.Switch()
 		lazy_title.set_active(conf.window_title_lazy)
 		lazy_title_label.set_mnemonic_widget(lazy_title)
-		prefs_grid.attach(lazy_title, 4, 3, 1, 1)
+		prefs_grid.attach(lazy_title, 4, 4, 1, 1)
 		pause_expansion_label = Gtk.Label.new_with_mnemonic('_Pause expansion')
-		prefs_grid.attach(pause_expansion_label, 0, 4, 1, 1)
+		prefs_grid.attach(pause_expansion_label, 0, 5, 1, 1)
 		self.pause_expansion = Gtk.Label()
 		if conf.pause_service:
 			pause_modifiers = ''
@@ -263,12 +271,12 @@ class ManagerUI(Gtk.Window):
 				pause_modifiers + conf.pause_service[0])
 		pause_expansion_frame = Gtk.Frame(shadow_type=Gtk.ShadowType.IN)
 		pause_expansion_frame.add(self.pause_expansion)
-		prefs_grid.attach(pause_expansion_frame, 2, 4, 2, 1)
+		prefs_grid.attach(pause_expansion_frame, 2, 5, 2, 1)
 		pause_expansion_set = Gtk.Button('Set')
 		pause_expansion_label.set_mnemonic_widget(pause_expansion_set)
-		prefs_grid.attach(pause_expansion_set, 4, 4, 1, 1)
+		prefs_grid.attach(pause_expansion_set, 4, 5, 1, 1)
 		show_manager_label = Gtk.Label.new_with_mnemonic('_Show manager')
-		prefs_grid.attach(show_manager_label, 0, 5, 1, 1)
+		prefs_grid.attach(show_manager_label, 0, 6, 1, 1)
 		self.show_manager = Gtk.Label()
 		if conf.show_manager:
 			show_modifiers = ''
@@ -277,10 +285,10 @@ class ManagerUI(Gtk.Window):
 			self.show_manager.set_text(show_modifiers + conf.show_manager[0])
 		show_manager_frame = Gtk.Frame(shadow_type=Gtk.ShadowType.IN)
 		show_manager_frame.add(self.show_manager)
-		prefs_grid.attach(show_manager_frame, 2, 5, 2, 1)
+		prefs_grid.attach(show_manager_frame, 2, 6, 2, 1)
 		show_manager_set = Gtk.Button('Set')
 		show_manager_label.set_mnemonic_widget(show_manager_set)
-		prefs_grid.attach(show_manager_set, 4, 5, 1, 1)
+		prefs_grid.attach(show_manager_set, 4, 6, 1, 1)
 
 		# Packing
 		scrollable_treelist.add(self.treeview)
@@ -308,6 +316,7 @@ class ManagerUI(Gtk.Window):
 		set_filter_title.connect('toggled', self.set_window_title)
 		save_phrase.connect('clicked', self.save_phrase)
 		phrase_dir.connect('file-set', self.set_phrase_dir)
+		indicator_theme.connect('notify::active', self.set_indicator_theme)
 		folder_warning_switch.connect(
 			'notify::active', self.folder_warning_toggle)
 		backspace_undo.connect('notify::active', self.backspace_undo_toggle)
@@ -731,21 +740,34 @@ class ManagerUI(Gtk.Window):
 				send=p_send, window_class=p_filter_class,
 				window_title=p_filter_title)
 
-	def set_phrase_dir(self, widget):
+	def restart_app(self, warning_text):
 
-		conf._conf_manager.edit('phrases_dir', widget.get_filename())
 		dialog = Gtk.MessageDialog(self, 0, Gtk.MessageType.WARNING,
 			Gtk.ButtonsType.OK_CANCEL, 'Restart now?')
-		dialog.format_secondary_text('Phrase editing and creation will not'
-			'function corectly until application is restarted.')
+		dialog.format_secondary_text(warning_text)
 		response = dialog.run()
 		dialog.destroy()
 		if response == Gtk.ResponseType.OK:
-			subprocess.Popen(['./xpander-indicator'])
+			try:
+				subprocess.Popen(['xpander-indicator'])
+			except FileNotFoundError:
+				subprocess.Popen(['./xpander-indicator'])
 			conf._interface.stop()
 			conf._service.stop()
 			Gtk.main_quit()
 			sys.exit(0)
+
+	def set_phrase_dir(self, widget):
+
+		conf._conf_manager.edit('phrases_dir', widget.get_filename())
+		self.restart_app('Phrase editing and creation will not'
+			' function corectly until application is restarted.')
+
+	def set_indicator_theme(self, widget, pspec):
+
+		conf._conf_manager.edit('indicator_theme_light', widget.get_active())
+		self.restart_app(
+			'Changes will not take effect until application is restarted.')
 
 	def folder_warning_toggle(self, widget, pspec):
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Provides namespace for configuration, as well as default values."""
+"""Provides shared namespace, as well as default configuration values."""
 
 import os
 import sys
@@ -17,14 +17,15 @@ else:
 backspace_undo = True
 
 # manager
-_config_dir = os.path.expanduser('~/.Xpander')
-phrases_dir = os.path.expanduser('~/.Xpander/Phrases')
+_config_dir = os.path.expanduser('~/.config')
+phrases_dir = os.path.expanduser('~/.phrases')
 #   Global hotkeys
 _hotkeys = [('\t', ['NoModifier'])]
 pause_service = ('p', ('<Shift>', '<Super>'))
 show_manager = ('m', ('<Shift>', '<Super>'))
 
 # GUI
+indicator_theme_light = True
 warn_folder_delete = True
 
 # XInterface

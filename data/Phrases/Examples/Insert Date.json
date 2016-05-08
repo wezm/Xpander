@@ -1,0 +1,17 @@
+{
+	"body": "%x",
+	"hotkey": null,
+	"hotstring": "dat",
+	"name": "Insert Date.json",
+	"path": "Examples",
+	"script": false,
+	"send": [
+		1,
+		0
+	],
+	"timestamp": 1462098220,
+	"trigger": 2,
+	"uuid": "b4da93dc-0f86-11e6-8875-00224303a87d",
+	"window_class": null,
+	"window_title": null
+}
