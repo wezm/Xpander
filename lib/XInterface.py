@@ -878,6 +878,7 @@ class Interface(object):
 		"""Store clipboard contents in self.clipboard_contents."""
 
 		GLib.idle_add(self.__store_clipboard)
+		time.sleep(0.1)
 
 	def __store_clipboard(self):
 		"""See store_clipboard."""
@@ -891,6 +892,7 @@ class Interface(object):
 		"""Store primary selection contents in self.selection_contents."""
 
 		GLib.idle_add(self.__store_selection)
+		time.sleep(0.1)
 
 	def __store_selection(self):
 		"""See store_selection."""
@@ -906,11 +908,11 @@ class Interface(object):
 		self.store_clipboard()
 		GLib.idle_add(self.__clipboard.set_text, string, -1)
 		GLib.idle_add(self.__clipboard.store)
-		time.sleep(0.05)
+		time.sleep(0.2)
 		self.__send_paste(method)
 		# Add short pause to avoid overwriting string
 		# before it's actually pasted.
-		time.sleep(0.1)
+		time.sleep(0.2)
 		GLib.idle_add(self.__clipboard.set_text, self.clipboard_contents, -1)
 		GLib.idle_add(self.__clipboard.store)
 
