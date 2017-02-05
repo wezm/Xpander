@@ -19,12 +19,12 @@ class App:
         self._service.start()
         self._interface.start()
         gtkui.Indicator(
-            quit_callback=self.quit,
+            quit_callback=self.stop,
             toggle_service_callback=self.toggle_service,
-            restart_callback=self.quit
+            restart_callback=self.stop
         )
 
-    def quit(self):
+    def stop(self):
         self._interface.stop()
         self._service.stop()
 
