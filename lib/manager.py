@@ -53,7 +53,27 @@ class Conf(object):
 			If user configuration exists, load it. Else load defaults.
 		"""
 
-		self.config = {}
+		# Initialize config with defaults
+		self.config = {
+			# service
+			"backspace_undo": True,
+
+			# manager
+			"_config_dir": os.path.expanduser('~/.config'),
+			"phrases_dir": os.path.expanduser('~/.phrases'),
+
+			#   Global hotkeys
+			"_hotkeys": [('\t', ['NoModifier'])],
+			"pause_service": ('p', ('<Shift>', '<Super>')),
+			"show_manager": ('m', ('<Shift>', '<Super>')),
+
+			# GUI
+			"indicator_theme_light": True,
+			"warn_folder_delete": True,
+
+			# XInterface
+			"window_title_lazy": True
+		}
 		self.__user_config_path = os.path.join(conf._config_dir, 'Xpander.json')
 		self.__json_types = (
 			str, bool, int, float, list, tuple, dict, type(None))
@@ -73,10 +93,13 @@ class Conf(object):
 		if not os.path.isdir(conf.phrases_dir):
 			self.create_user_phrases()
 
-		if conf.pause_service:
+		if self.pause_service:
 			conf._hotkeys.append(conf.pause_service)
-		if conf.show_manager:
+		if self.show_manager:
 			conf._hotkeys.append(conf.show_manager)
+
+	def __getattr__(self, attr):
+		return self.config[attr]
 
 	def read_defaults(self):
 		"""Read default configuration into config."""
