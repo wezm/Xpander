@@ -24,7 +24,7 @@ from . import conf, CONSTANTS
 MainLogger = logging.getLogger('Xpander')
 Logger = MainLogger.getChild(__name__)
 
-# Ensure PyGObject verion doesn't require initializing threading explicitly.
+# Ensure PyGObject version doesn't require initializing threading explicitly.
 GI_VERSION_MAJOR = gi.version_info[0]
 GI_VERSION_MINOR = float('{0}.{1}'.format(
 	gi.version_info[1], gi.version_info[2]))

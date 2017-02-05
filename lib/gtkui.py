@@ -42,8 +42,9 @@ SEND = collections.OrderedDict(
 
 class ManagerUI(Gtk.Window):
 
-	def __init__(self):
+	def __init__(self, restart_app_callback):
 
+		self.restart_app_callback = restart_app_callback
 		Gtk.Window.__init__(self, title="Xpander")
 		self.set_border_width(6)
 		#~ self.set_default_size(700, 400)
@@ -752,8 +753,7 @@ class ManagerUI(Gtk.Window):
 				subprocess.Popen(['xpander-indicator'])
 			except FileNotFoundError:
 				subprocess.Popen(['./xpander-indicator'])
-			conf._interface.stop()
-			conf._service.stop()
+			self.restart_app_callback()
 			Gtk.main_quit()
 			sys.exit(0)
 
@@ -821,7 +821,7 @@ class ManagerUI(Gtk.Window):
 
 class Indicator(object):
 
-	def __init__(self, quit_callback, toggle_service_callback):
+	def __init__(self, quit_callback, toggle_service_callback, restart_callback):
 		self.quit_callback = quit_callback
 		self.toggle_service_callback = toggle_service_callback
 
@@ -846,7 +846,7 @@ class Indicator(object):
 			AppIndicator3.IndicatorCategory.APPLICATION_STATUS)
 		self.indicator.set_status(AppIndicator3.IndicatorStatus.ACTIVE)
 		self.indicator.set_menu(self.build_menu())
-		self.manager_ui = ManagerUI()
+		self.manager_ui = ManagerUI(restart_callback)
 		Gtk.main()
 
 	def build_menu(self):
