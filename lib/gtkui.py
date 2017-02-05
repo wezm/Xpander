@@ -821,7 +821,9 @@ class ManagerUI(Gtk.Window):
 
 class Indicator(object):
 
-	def __init__(self):
+	def __init__(self, quit_callback):
+		self.quit_callback = quit_callback
+
 		if conf.indicator_theme_light:
 			if os.path.exists('data/xpander-active.svg'):
 				self.indicator_active = os.path.abspath('data/xpander-active.svg')
@@ -880,8 +882,7 @@ class Indicator(object):
 
 	def quit(self, menu_item):
 
-		conf._interface.stop()
-		conf._service.stop()
+		self.quit_callback()
 		Gtk.main_quit()
 		# If Gtk throws an error or just a warning, main_quit() might not
 		# actually close the app

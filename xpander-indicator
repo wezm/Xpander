@@ -15,7 +15,6 @@ from lib import conf, app
 _app = app.App()
 
 # TODO: Remove the need for these
-conf._hotkeys_manager = _app._hotkeys_manager
 conf._conf_manager = _app._conf_manager
 
 conf._phrases_manager = _app._phrases_manager

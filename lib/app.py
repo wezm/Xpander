@@ -18,4 +18,8 @@ class App:
 
         self._service.start()
         self._interface.start()
-        gtkui.Indicator()
+        gtkui.Indicator(self.quit)
+
+    def quit(self):
+        self._interface.stop()
+        self._service.stop()
