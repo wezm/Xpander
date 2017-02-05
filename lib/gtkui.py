@@ -10,7 +10,7 @@ import sys
 import logging
 import gi
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, Gdk, GLib
+from gi.repository import Gtk, Gdk, GLib, AppIndicator3
 from . import CONSTANTS, conf, manager
 
 MainLogger = logging.getLogger('Xpander')
@@ -818,3 +818,72 @@ class ManagerUI(Gtk.Window):
 			g_hotkey = None
 		conf._conf_manager.edit('show_manager', g_hotkey)
 		self.show_manager.set_text(string)
+
+class Indicator(object):
+
+	def __init__(self):
+		if conf.indicator_theme_light:
+			if os.path.exists('data/xpander-active.svg'):
+				self.indicator_active = os.path.abspath('data/xpander-active.svg')
+				self.indicator_paused = os.path.abspath('data/xpander-paused.svg')
+			else:
+				self.indicator_active = 'xpander-active'
+				self.indicator_paused = 'xpander-paused'
+		else:
+			if os.path.exists('data/xpander-active-dark.svg'):
+				self.indicator_active = os.path.abspath('data/xpander-active-dark.svg')
+				self.indicator_paused = os.path.abspath('data/xpander-paused-dark.svg')
+			else:
+				self.indicator_active = 'xpander-active-dark'
+				self.indicator_paused = 'xpander-paused-dark'
+
+		self.indicator = AppIndicator3.Indicator.new(
+			'Xpander',
+			self.indicator_active,
+			AppIndicator3.IndicatorCategory.APPLICATION_STATUS)
+		self.indicator.set_status(AppIndicator3.IndicatorStatus.ACTIVE)
+		self.indicator.set_menu(self.build_menu())
+		self.manager_ui = ManagerUI()
+		Gtk.main()
+
+	def build_menu(self):
+
+		menu = Gtk.Menu()
+		conf._menu_toggle_service = Gtk.CheckMenuItem('Pause Expansion')
+		conf._menu_toggle_service.connect('toggled', self.toggle_service)
+		conf._menu_show_manager = Gtk.ImageMenuItem('Manager')
+		icon_show_manager = Gtk.Image.new_from_icon_name('preferences-system', 22)
+		conf._menu_show_manager.set_image(icon_show_manager)
+		conf._menu_show_manager.connect('activate', self.show_manager)
+		menu_quit = Gtk.ImageMenuItem('Quit')
+		icon_quit = Gtk.Image.new_from_icon_name('application-exit', 22)
+		menu_quit.set_image(icon_quit)
+		menu_quit.connect('activate', self.quit)
+		menu.append(conf._menu_toggle_service)
+		menu.append(conf._menu_show_manager)
+		menu.append(menu_quit)
+		menu.show_all()
+		return menu
+
+	def toggle_service(self, menu_item):
+
+		conf._service.toggle_service()
+		if conf._run_service:
+			GLib.idle_add(self.indicator.set_icon, self.indicator_active)
+		else:
+			GLib.idle_add(self.indicator.set_icon, self.indicator_paused)
+
+	def show_manager(self, menu_item):
+
+		self.manager_ui.create_window()
+		self.manager_ui.show_all()
+
+	def quit(self, menu_item):
+
+		conf._interface.stop()
+		conf._service.stop()
+		Gtk.main_quit()
+		# If Gtk throws an error or just a warning, main_quit() might not
+		# actually close the app
+		sys.exit(0)
+
