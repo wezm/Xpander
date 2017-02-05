@@ -13,45 +13,50 @@ MainLogger = logging.getLogger('Xpander')
 Logger = MainLogger.getChild(__name__)
 
 
-def grab_hotkey(hotkey):
+class Hotkeys:
 
-	keycode = conf._interface.lookup_keycode(
-		conf._interface.lookup_keysym(hotkey[0]))
-	mask = 0
-	for modifier in hotkey[1]:
-		mask |= conf._interface.MODIFIER_MASK[modifier]
-	conf._interface.grab_key(keycode, mask)
+	def grab_hotkey(self, hotkey):
 
-
-def ungrab_hotkey(hotkey):
-
-	keycode = conf._interface.lookup_keycode(
-		conf._interface.lookup_keysym(hotkey[0]))
-	mask = 0
-	for modifier in hotkey[1]:
-		mask |= conf._interface.MODIFIER_MASK[modifier]
-	conf._interface.ungrab_key(keycode, mask)
+		keycode = conf._interface.lookup_keycode(
+			conf._interface.lookup_keysym(hotkey[0]))
+		mask = 0
+		for modifier in hotkey[1]:
+			mask |= conf._interface.MODIFIER_MASK[modifier]
+		conf._interface.grab_key(keycode, mask)
 
 
-def grab_hotkeys():
+	def ungrab_hotkey(self, hotkey):
 
-	for hotkey in conf._hotkeys:
-		grab_hotkey(hotkey)
+		keycode = conf._interface.lookup_keycode(
+			conf._interface.lookup_keysym(hotkey[0]))
+		mask = 0
+		for modifier in hotkey[1]:
+			mask |= conf._interface.MODIFIER_MASK[modifier]
+		conf._interface.ungrab_key(keycode, mask)
+
+	def grab_hotkeys(self):
+
+		for hotkey in conf._hotkeys:
+			self.grab_hotkey(hotkey)
 
 
-def ungrab_hotkeys():
+	# NOTE: Appears unused
+	def ungrab_hotkeys():
 
-	for hotkey in conf._hotkeys:
-		ungrab_hotkey(hotkey)
+		for hotkey in conf._hotkeys:
+			self.ungrab_hotkey(hotkey)
 
 
 class Conf(object):
 
-	def __init__(self):
+	def __init__(self, hotkeys):
 		"""Load initial configuration and grab/ungrab global hotkeys.
 
 			If user configuration exists, load it. Else load defaults.
 		"""
+
+		# TODO: Remove dependency on hotkeys
+		self.hotkeys = hotkeys
 
 		# Initialize config with defaults
 		self.config = {
@@ -164,14 +169,14 @@ class Conf(object):
 
 		if key == 'pause_service':
 			if conf.pause_service:
-				ungrab_hotkey(conf.pause_service)
+				self.hotkeys.ungrab_hotkey(conf.pause_service)
 			if value:
-				grab_hotkey(value)
+				self.hotkeys.grab_hotkey(value)
 		if key == 'show_manager':
 			if conf.show_manager:
-				ungrab_hotkey(conf.show_manager)
+				self.hotkeys.ungrab_hotkey(conf.show_manager)
 			if value:
-				grab_hotkey(value)
+				self.hotkeys.grab_hotkey(value)
 
 		self.config[key] = value
 		self.load()
@@ -180,8 +185,9 @@ class Conf(object):
 
 class Phrases(object):
 
-	def __init__(self):
+	def __init__(self, hotkeys):
 
+		self.hotkeys = hotkeys
 		conf._phrases = {}
 		self.load()
 		for p_uuid, phrase in conf._phrases.items():
@@ -243,7 +249,7 @@ class Phrases(object):
 		"""
 
 		if hotkey is not None:
-			grab_hotkey(hotkey)
+			self.hotkeys.grab_hotkey(hotkey)
 
 		file_path = os.path.join(conf.phrases_dir, path, name)
 		p_uuid = str(uuid.uuid1())
@@ -276,8 +282,8 @@ class Phrases(object):
 
 		if hotkey != 'KEEP' and hotkey is not None:
 			if conf._phrases[p_uuid]['hotkey'] is not None:
-				ungrab_hotkey(conf._phrases[p_uuid]['hotkey'])
-			grab_hotkey(hotkey)
+				self.hotkeys.ungrab_hotkey(conf._phrases[p_uuid]['hotkey'])
+			self.hotkeys.grab_hotkey(hotkey)
 
 		phrase = {
 			'uuid': p_uuid,
@@ -325,7 +331,7 @@ class Phrases(object):
 		"""Remove phrase from phrases dict and delete phrase file."""
 
 		if conf._phrases[p_uuid]['hotkey'] is not None:
-			ungrab_hotkey(conf._phrases[p_uuid]['hotkey'])
+			self.hotkeys.ungrab_hotkey(conf._phrases[p_uuid]['hotkey'])
 
 		p_file = os.path.abspath(os.path.join(
 			conf.phrases_dir, conf._phrases[p_uuid]['path'],

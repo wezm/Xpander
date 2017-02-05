@@ -68,7 +68,8 @@ class Indicator(object):
 		# actually close the app
 		sys.exit(0)
 
-conf._conf_manager = manager.Conf()
+conf._hotkeys_manager = manager.Hotkeys()
+conf._conf_manager = manager.Conf(conf._hotkeys)
 
 if conf.indicator_theme_light:
 	if os.path.exists('data/xpander-active.svg'):
@@ -85,10 +86,10 @@ else:
 		indicator_active = 'xpander-active-dark'
 		indicator_paused = 'xpander-paused-dark'
 
-conf._phrases_manager = manager.Phrases()
+conf._phrases_manager = manager.Phrases(conf._hotkeys_manager)
 conf._service = service.Service()
 conf._interface = XInterface.Interface()
-manager.grab_hotkeys()
+conf._hotkeys_manager.grab_hotkeys()
 # Necessary to actually grab tab key, hopefully focus is not
 # in a textbox during startup.
 conf._interface.send_string('\t')
