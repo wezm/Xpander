@@ -74,7 +74,7 @@ class Conf(object):
 			# XInterface
 			"window_title_lazy": True
 		}
-		self.__user_config_path = os.path.join(conf._config_dir, 'Xpander.json')
+		self.__user_config_path = os.path.join(self._config_dir, 'Xpander.json')
 		self.__json_types = (
 			str, bool, int, float, list, tuple, dict, type(None))
 
@@ -83,7 +83,7 @@ class Conf(object):
 			self.load()
 		except:
 			Logger.exception('Cannot read user configuration.')
-			self.read_defaults()
+			#  self.read_defaults()
 			self.load()
 			try:
 				self.create_user_config()
@@ -101,6 +101,7 @@ class Conf(object):
 	def __getattr__(self, attr):
 		return self.config[attr]
 
+	# TODO: Remove
 	def read_defaults(self):
 		"""Read default configuration into config."""
 
@@ -115,13 +116,16 @@ class Conf(object):
 
 		Logger.debug('Reading user configuration.')
 		with open(self.__user_config_path) as user_config:
-			self.config = json.loads(user_config.read())
+			self.config.update(json.loads(user_config.read()))
 
+	# TODO: Remove
 	def load(self):
 		"""Load config values into conf namespace."""
 
 		for key, value in self.config.items():
 			setattr(conf, key, value)
+
+
 
 	def create_user_config(self):
 		"""Create user configuration directory tree with default values."""
