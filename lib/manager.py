@@ -7,7 +7,7 @@ import json
 import uuid
 import time
 import logging
-from . import conf
+from . import app
 
 MainLogger = logging.getLogger('Xpander')
 Logger = MainLogger.getChild(__name__)
@@ -15,33 +15,33 @@ Logger = MainLogger.getChild(__name__)
 
 def grab_hotkey(hotkey):
 
-	keycode = conf._interface.lookup_keycode(
-		conf._interface.lookup_keysym(hotkey[0]))
+	keycode = app._interface.lookup_keycode(
+		app._interface.lookup_keysym(hotkey[0]))
 	mask = 0
 	for modifier in hotkey[1]:
-		mask |= conf._interface.MODIFIER_MASK[modifier]
-	conf._interface.grab_key(keycode, mask)
+		mask |= app._interface.MODIFIER_MASK[modifier]
+	app._interface.grab_key(keycode, mask)
 
 
 def ungrab_hotkey(hotkey):
 
-	keycode = conf._interface.lookup_keycode(
-		conf._interface.lookup_keysym(hotkey[0]))
+	keycode = app._interface.lookup_keycode(
+		app._interface.lookup_keysym(hotkey[0]))
 	mask = 0
 	for modifier in hotkey[1]:
-		mask |= conf._interface.MODIFIER_MASK[modifier]
-	conf._interface.ungrab_key(keycode, mask)
+		mask |= app._interface.MODIFIER_MASK[modifier]
+	app._interface.ungrab_key(keycode, mask)
 
 
 def grab_hotkeys():
 
-	for hotkey in conf._hotkeys:
+	for hotkey in app._hotkeys:
 		grab_hotkey(hotkey)
 
 
 def ungrab_hotkeys():
 
-	for hotkey in conf._hotkeys:
+	for hotkey in app._hotkeys:
 		ungrab_hotkey(hotkey)
 
 
@@ -54,7 +54,7 @@ class Conf(object):
 		"""
 
 		self.config = {}
-		self.__user_config_path = os.path.join(conf._config_dir, 'Xpander.json')
+		self.__user_config_path = os.path.join(app._config_dir, 'Xpander.json')
 		self.__json_types = (
 			str, bool, int, float, list, tuple, dict, type(None))
 
@@ -70,22 +70,22 @@ class Conf(object):
 			except:
 				Logger.exception('Cannot create user configuration directory tree.')
 
-		if not os.path.isdir(conf.phrases_dir):
+		if not os.path.isdir(app.phrases_dir):
 			self.create_user_phrases()
 
-		if conf.pause_service:
-			conf._hotkeys.append(conf.pause_service)
-		if conf.show_manager:
-			conf._hotkeys.append(conf.show_manager)
+		if app.pause_service:
+			app._hotkeys.append(app.pause_service)
+		if app.show_manager:
+			app._hotkeys.append(app.show_manager)
 
 	def read_defaults(self):
 		"""Read default configuration into config."""
 
 		Logger.debug('Reading default configuration.')
-		for name in dir(conf):
+		for name in dir(app):
 			if (not name.startswith('_') and
-				type(getattr(conf, name)) in self.__json_types):
-				self.config[name] = getattr(conf, name)
+				type(getattr(app, name)) in self.__json_types):
+				self.config[name] = getattr(app, name)
 
 	def read_user(self):
 		"""Read user configuration into config."""
@@ -95,18 +95,18 @@ class Conf(object):
 			self.config = json.loads(user_config.read())
 
 	def load(self):
-		"""Load config values into conf namespace."""
+		"""Load config values into app namespace."""
 
 		for key, value in self.config.items():
-			setattr(conf, key, value)
+			setattr(app, key, value)
 
 	def create_user_config(self):
 		"""Create user configuration directory tree with default values."""
 
 		if not os.path.isfile(self.__user_config_path):
-			if not os.path.isdir(conf._config_dir):
+			if not os.path.isdir(app._config_dir):
 				Logger.info('Creating configuration directory.')
-				os.makedirs(conf._config_dir, exist_ok=True)
+				os.makedirs(app._config_dir, exist_ok=True)
 			Logger.info('Writing initial configuration.')
 			self.write()
 		return
@@ -117,11 +117,11 @@ class Conf(object):
 		Logger.info("Creating phrase directory.")
 		init_phrase_dir = os.path.join(
 			os.path.abspath(os.path.dirname(__file__)), 'data')
-		shutil.copytree(init_phrase_dir, conf.phrases_dir)
+		shutil.copytree(init_phrase_dir, app.phrases_dir)
 		return
 
 	def write(self):
-		"""Write configuration stored in config to conf._config_dir/config.json.
+		"""Write configuration stored in config to app._config_dir/config.json.
 		"""
 
 		Logger.debug('Writing configuration.')
@@ -133,16 +133,16 @@ class Conf(object):
 			Logger.exception('Cannot save user configuration.')
 
 	def edit(self, key, value):
-		"""Replace value of given key, load it to conf and save to config.json"""
+		"""Replace value of given key, load it to app and save to config.json"""
 
 		if key == 'pause_service':
-			if conf.pause_service:
-				ungrab_hotkey(conf.pause_service)
+			if app.pause_service:
+				ungrab_hotkey(app.pause_service)
 			if value:
 				grab_hotkey(value)
 		if key == 'show_manager':
-			if conf.show_manager:
-				ungrab_hotkey(conf.show_manager)
+			if app.show_manager:
+				ungrab_hotkey(app.show_manager)
 			if value:
 				grab_hotkey(value)
 
@@ -153,16 +153,17 @@ class Conf(object):
 
 class Phrases(object):
 
-	def __init__(self):
+	def __init__(self, app):
 
-		conf._phrases = {}
-		self.load()
-		for p_uuid, phrase in conf._phrases.items():
+		self.app = app
+		self.app._phrases = {}
+		self.load(self.app.phrases_dir)
+		for p_uuid, phrase in self.app._phrases.items():
 			if phrase['hotkey']:
-				conf._hotkeys.append(phrase['hotkey'])
+				self.app._hotkeys.append(phrase['hotkey'])
 
-	def load(self, folder=conf.phrases_dir):
-		"""Recursively load phrases from conf.phrases_dir into phrases dict."""
+	def load(self, folder):
+		"""Recursively load phrases from app.phrases_dir into phrases dict."""
 
 		for file_ in os.listdir(folder):
 			Logger.info('Loading phrase {}'.format(file_))
@@ -175,11 +176,11 @@ class Phrases(object):
 							phrase['name'] = file_
 							update = True
 						if not phrase['path'] == os.path.relpath(
-							folder, start=conf.phrases_dir):
+							folder, start=self.app.phrases_dir):
 							phrase['path'] = os.path.relpath(
-								folder, start=conf.phrases_dir)
+								folder, start=self.app.phrases_dir)
 							update = True
-						conf._phrases[phrase['uuid']] = phrase
+						self.app._phrases[phrase['uuid']] = phrase
 					except ValueError:
 						Logger.exception('Invalid phrase file.')
 			except IsADirectoryError:
@@ -196,7 +197,7 @@ class Phrases(object):
 		"""Construct new phrase, add it to phrase dict and save to file.
 
 			name is a string file name;
-			path is a string path relative to conf.phrases_dir;
+			path is a string path relative to app.phrases_dir;
 			body is a string body of the phrase or command to execute,
 				depending on script value;
 			script is a boolean, if true body is treated as command to execute,
@@ -218,7 +219,7 @@ class Phrases(object):
 		if hotkey is not None:
 			grab_hotkey(hotkey)
 
-		file_path = os.path.join(conf.phrases_dir, path, name)
+		file_path = os.path.join(app.phrases_dir, path, name)
 		p_uuid = str(uuid.uuid1())
 		phrase = {
 			'uuid': p_uuid,
@@ -233,7 +234,7 @@ class Phrases(object):
 			'window_class': window_class,
 			'window_title': window_title,
 			'timestamp': int(time.time())}
-		conf._phrases[p_uuid] = phrase
+		app._phrases[p_uuid] = phrase
 		if not os.path.isdir(os.path.dirname(file_path)):
 			os.makedirs(os.path.dirname(file_path), exist_ok=True)
 		with open(file_path, 'w') as p_file:
@@ -248,65 +249,65 @@ class Phrases(object):
 		"""Edit phrase, update phrase dict and replace phrase file."""
 
 		if hotkey != 'KEEP' and hotkey is not None:
-			if conf._phrases[p_uuid]['hotkey'] is not None:
-				ungrab_hotkey(conf._phrases[p_uuid]['hotkey'])
+			if app._phrases[p_uuid]['hotkey'] is not None:
+				ungrab_hotkey(app._phrases[p_uuid]['hotkey'])
 			grab_hotkey(hotkey)
 
 		phrase = {
 			'uuid': p_uuid,
-			'name': name if name != 'KEEP' else conf._phrases[p_uuid]['name'],
-			'body': body if body != 'KEEP' else conf._phrases[p_uuid]['body'],
-			'path': path if path != 'KEEP' else conf._phrases[p_uuid]['path'],
+			'name': name if name != 'KEEP' else app._phrases[p_uuid]['name'],
+			'body': body if body != 'KEEP' else app._phrases[p_uuid]['body'],
+			'path': path if path != 'KEEP' else app._phrases[p_uuid]['path'],
 			'script': (script if script != 'KEEP'
-				else conf._phrases[p_uuid]['script']),
-			'send': send if send != 'KEEP' else conf._phrases[p_uuid]['send'],
+				else app._phrases[p_uuid]['script']),
+			'send': send if send != 'KEEP' else app._phrases[p_uuid]['send'],
 			'hotstring': (hotstring if hotstring != 'KEEP'
-				else conf._phrases[p_uuid]['hotstring']),
+				else app._phrases[p_uuid]['hotstring']),
 			'trigger': (trigger if trigger != 'KEEP'
-				else conf._phrases[p_uuid]['trigger']),
+				else app._phrases[p_uuid]['trigger']),
 			'hotkey': (hotkey if hotkey != 'KEEP'
-				else conf._phrases[p_uuid]['hotkey']),
+				else app._phrases[p_uuid]['hotkey']),
 			'window_class': (window_class if window_class != 'KEEP'
-				else conf._phrases[p_uuid]['window_class']),
+				else app._phrases[p_uuid]['window_class']),
 			'window_title': (window_title if window_title != 'KEEP'
-				else conf._phrases[p_uuid]['window_title']),
+				else app._phrases[p_uuid]['window_title']),
 			'timestamp': int(time.time())}
 
 		move = False
-		if (phrase['path'] != conf._phrases[p_uuid]['path'] or
-			phrase['name'] != conf._phrases[p_uuid]['name']):
+		if (phrase['path'] != app._phrases[p_uuid]['path'] or
+			phrase['name'] != app._phrases[p_uuid]['name']):
 			move = True
 			old_path = os.path.abspath(os.path.join(
-				conf.phrases_dir,
-				conf._phrases[p_uuid]['path'],
-				conf._phrases[p_uuid]['name']))
+				app.phrases_dir,
+				app._phrases[p_uuid]['path'],
+				app._phrases[p_uuid]['name']))
 			new_path = os.path.abspath(os.path.join(
-				conf.phrases_dir,
+				app.phrases_dir,
 				phrase['path'],
 				phrase['name']))
 
-		conf._phrases[p_uuid] = phrase
+		app._phrases[p_uuid] = phrase
 		if move:
 			os.renames(old_path, new_path)
 
-		with open(os.path.abspath(os.path.join(conf.phrases_dir,
-			conf._phrases[p_uuid]['path'],
-			conf._phrases[p_uuid]['name'])), 'w') as p_file:
+		with open(os.path.abspath(os.path.join(app.phrases_dir,
+			app._phrases[p_uuid]['path'],
+			app._phrases[p_uuid]['name'])), 'w') as p_file:
 			p_file.write(json.dumps(phrase, indent='\t', sort_keys=True))
 
 	def remove(self, p_uuid):
 		"""Remove phrase from phrases dict and delete phrase file."""
 
-		if conf._phrases[p_uuid]['hotkey'] is not None:
-			ungrab_hotkey(conf._phrases[p_uuid]['hotkey'])
+		if app._phrases[p_uuid]['hotkey'] is not None:
+			ungrab_hotkey(app._phrases[p_uuid]['hotkey'])
 
 		p_file = os.path.abspath(os.path.join(
-			conf.phrases_dir, conf._phrases[p_uuid]['path'],
-			conf._phrases[p_uuid]['name']))
+			app.phrases_dir, app._phrases[p_uuid]['path'],
+			app._phrases[p_uuid]['name']))
 		p_dir = os.path.abspath(os.path.join(
-			conf.phrases_dir, conf._phrases[p_uuid]['path']))
+			app.phrases_dir, app._phrases[p_uuid]['path']))
 
-		del conf._phrases[p_uuid]
+		del app._phrases[p_uuid]
 
 		try:
 			os.remove(p_file)

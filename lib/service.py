@@ -9,7 +9,7 @@ import shlex
 import time
 import logging
 from gi.repository import GLib
-from . import conf, CONSTANTS, gtkui
+from . import app, CONSTANTS, gtkui
 
 MainLogger = logging.getLogger('Xpander')
 Logger = MainLogger.getChild(__name__)
@@ -22,8 +22,8 @@ class Service(threading.Thread):
 		threading.Thread.__init__(self)
 		self.daemon = True
 		self.name = 'Listener service'
-		self.phrases = conf._phrases
-		conf._run_service = True
+		self.phrases = app._phrases
+		app._run_service = True
 		self.__queue = queue.Queue()
 		self.input_stack = collections.deque(maxlen=128)
 		self.input_stack_index = 0
@@ -80,7 +80,7 @@ class Service(threading.Thread):
 				modifiers['<Super>'] or
 				modifiers['<Control>'] or
 				modifiers['<Alt>'])
-			char = conf._interface.lookup_string(keysym)
+			char = app._interface.lookup_string(keysym)
 			if not modifier_state:
 				if len(char) == 1:
 					self.input_stack.append(char)
@@ -90,26 +90,26 @@ class Service(threading.Thread):
 						if char == '\t' and not phrase:
 							if self.__caret_pos:
 								try:
-									conf._interface.caret_right(
+									app._interface.caret_right(
 										next(self.__caret_pos))
 								except StopIteration:
 									self.__caret_pos = None
-									conf._interface.send_string('\t')
+									app._interface.send_string('\t')
 							else:
-								conf._interface.send_string('\t')
+								app._interface.send_string('\t')
 						elif phrase:
 							if char == '\t':
 								self.trigger_phrase(phrase)
 							else:
 								self.trigger_phrase(phrase, include_char=char)
 				elif char == 'XK_BackSpace':
-					if conf.backspace_undo:
+					if app.backspace_undo:
 						if self.__last_expanded:
 							if self.__caret_pos:
 								for caret_pos in self.__caret_pos:
-									conf._interface.caret_right(caret_pos)
+									app._interface.caret_right(caret_pos)
 								self.__caret_pos = None
-							conf._interface.send_backspace(
+							app._interface.send_backspace(
 								len(self.__last_expanded) - 1)
 							self.__last_expanded = None
 					try:
@@ -147,14 +147,14 @@ class Service(threading.Thread):
 				if phrase == '__pause_service':
 					try:
 						GLib.idle_add(
-							conf._menu_toggle_service.set_active,
-							conf._run_service)
+							app._menu_toggle_service.set_active,
+							app._run_service)
 					except:
 						Logger.exception('Gtk error.')
 						self.toggle_service()
 				elif phrase == '__show_manager':
 					try:
-						GLib.idle_add(conf._menu_show_manager.activate)
+						GLib.idle_add(app._menu_show_manager.activate)
 					except:
 						Logger.exception('Gtk error.')
 				elif phrase:
@@ -165,24 +165,24 @@ class Service(threading.Thread):
 
 		filter_match = True
 		if phrase['window_class']:
-			if not conf._interface.active_window_class in phrase['window_class']:
+			if not app._interface.active_window_class in phrase['window_class']:
 				filter_match = False
 		if phrase['window_title']:
 			if phrase['window_title'][1]:
 				if not (phrase['window_title'][0] in
-					conf._interface.active_window_title):
+					app._interface.active_window_title):
 					filter_match = False
 			else:
 				if not (phrase['window_title'][0].casefold() in
-					conf._interface.active_window_title.casefold()):
+					app._interface.active_window_title.casefold()):
 					filter_match = False
 		return filter_match
 
 	def match_hotstring(self, char):
 
-		if conf._run_service:
-			for p_uuid in conf._phrases:
-				phrase = conf._phrases[p_uuid]
+		if app._run_service:
+			for p_uuid in app._phrases:
+				phrase = app._phrases[p_uuid]
 				if phrase['hotstring'] is not None:
 					if self.match_window_filter(phrase):
 						if self.TRIGGER[phrase['trigger']](char):
@@ -194,7 +194,7 @@ class Service(threading.Thread):
 
 	def match_hotkey(self, char, modifiers):
 
-		if conf._run_service:
+		if app._run_service:
 			for p_uuid in self.phrases:
 				phrase = self.phrases[p_uuid]
 				if phrase['hotkey'] is not None:
@@ -208,23 +208,23 @@ class Service(threading.Thread):
 							if len(phrase['hotkey'][1]) == modifier_match:
 								return phrase
 		# Special handling for app's global hotkeys
-		if conf.pause_service:
-			if (char == conf.pause_service[0] or
-				char.casefold() == conf.pause_service[0]):
+		if app.pause_service:
+			if (char == app.pause_service[0] or
+				char.casefold() == app.pause_service[0]):
 				modifier_match = 0
-				for modifier in conf.pause_service[1]:
+				for modifier in app.pause_service[1]:
 					if modifiers[modifier]:
 						modifier_match += 1
-				if len(conf.pause_service[1]) == modifier_match:
+				if len(app.pause_service[1]) == modifier_match:
 					return '__pause_service'
-		if conf.show_manager:
-			if (char == conf.show_manager[0] or
-				char.casefold() == conf.show_manager[0]):
+		if app.show_manager:
+			if (char == app.show_manager[0] or
+				char.casefold() == app.show_manager[0]):
 				modifier_match = 0
-				for modifier in conf.show_manager[1]:
+				for modifier in app.show_manager[1]:
 					if modifiers[modifier]:
 						modifier_match += 1
-				if len(conf.show_manager[1]) == modifier_match:
+				if len(app.show_manager[1]) == modifier_match:
 					return '__show_manager'
 
 	def trigger_phrase(self, phrase, include_char='', remove=True):
@@ -243,30 +243,30 @@ class Service(threading.Thread):
 					os.path.join(phrase['path'], phrase['name'])))
 				output = ''
 			if remove:
-				conf._interface.send_backspace(
+				app._interface.send_backspace(
 					len(phrase['hotstring']) + len(include_char))
 			self.__last_expanded = output.strip() + include_char
 			self.send_string(output.strip() + include_char, phrase['send'])
 		else:
 			if remove:
-				conf._interface.send_backspace(
+				app._interface.send_backspace(
 					len(phrase['hotstring']) + (len(include_char)))
 			string = self.expand(phrase['body'])
 			self.__last_expanded = string +include_char
 			self.send_string(string + include_char, phrase['send'])
 			if self.__caret_pos:
 				time.sleep(0.05)  # Events may get lost without a pause.
-				conf._interface.caret_left(next(self.__caret_pos))
+				app._interface.caret_left(next(self.__caret_pos))
 
 	def expand(self, string):
 
 		string = time.strftime(string)
 		if '$C' in string:
-			conf._interface.store_clipboard()
-			string = string.replace('$C', conf._interface.clipboard_contents)
+			app._interface.store_clipboard()
+			string = string.replace('$C', app._interface.clipboard_contents)
 		if '$S' in string:
-			conf._interface.store_selection()
-			string = string.replace('$S', conf._interface.selection_contents)
+			app._interface.store_selection()
+			string = string.replace('$S', app._interface.selection_contents)
 		if '$|' in string:
 			self.__caret_pos = self.get_caret_pos(string)
 			string = string.replace('$|', '')
@@ -290,11 +290,11 @@ class Service(threading.Thread):
 	def send_string(self, string, method):
 
 		if method[0] == 0:
-			conf._interface.send_string(string)
+			app._interface.send_string(string)
 		elif method[0] == 1:
-			conf._interface.send_string_clipboard(string, method[1])
+			app._interface.send_string_clipboard(string, method[1])
 
 	def toggle_service(self):
 
 		Logger.info('Toggling service.')
-		conf._run_service = not conf._run_service
+		app._run_service = not app._run_service

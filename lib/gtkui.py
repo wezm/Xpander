@@ -11,7 +11,7 @@ import logging
 import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GLib
-from . import CONSTANTS, conf, manager
+from . import CONSTANTS, app, manager
 
 MainLogger = logging.getLogger('Xpander')
 Logger = MainLogger.getChild(__name__)
@@ -228,7 +228,7 @@ class ManagerUI(Gtk.Window):
 		phrase_dir = Gtk.FileChooserButton.new(
 			'Phrase directory', Gtk.FileChooserAction.SELECT_FOLDER)
 		phrase_dir.set_create_folders(True)
-		phrase_dir.set_current_folder(conf.phrases_dir)
+		phrase_dir.set_current_folder(app.phrases_dir)
 		phrase_dir_label.set_mnemonic_widget(phrase_dir)
 		prefs_grid.attach(
 			phrase_dir, 3, 0, 2, 1)
@@ -236,39 +236,39 @@ class ManagerUI(Gtk.Window):
 			'Prefer light _indicator icon theme (needs restart)')
 		prefs_grid.attach(indicator_theme_label, 0, 1, 2, 1)
 		indicator_theme = Gtk.Switch()
-		indicator_theme.set_active(conf.indicator_theme_light)
+		indicator_theme.set_active(app.indicator_theme_light)
 		indicator_theme_label.set_mnemonic_widget(indicator_theme)
 		prefs_grid.attach(indicator_theme, 4, 1, 1, 1)
 		folder_warning_label = Gtk.Label.new_with_mnemonic(
 			'_Warn when deleting a folder')
 		prefs_grid.attach(folder_warning_label, 0, 2, 2, 1)
 		folder_warning_switch = Gtk.Switch()
-		folder_warning_switch.set_active(conf.warn_folder_delete)
+		folder_warning_switch.set_active(app.warn_folder_delete)
 		folder_warning_label.set_mnemonic_widget(folder_warning_switch)
 		prefs_grid.attach(folder_warning_switch, 4, 2, 1, 1)
 		backspace_undo_label = Gtk.Label.new_with_mnemonic(
 			'_Backspace undoes expansion')
 		prefs_grid.attach(backspace_undo_label, 0, 3, 2, 1)
 		backspace_undo = Gtk.Switch()
-		backspace_undo.set_active(conf.backspace_undo)
+		backspace_undo.set_active(app.backspace_undo)
 		backspace_undo_label.set_mnemonic_widget(backspace_undo)
 		prefs_grid.attach(backspace_undo, 4, 3, 1, 1)
 		lazy_title_label = Gtk.Label.new_with_mnemonic(
 			'_Lazy window title matching')
 		prefs_grid.attach(lazy_title_label, 0, 4, 2, 1)
 		lazy_title = Gtk.Switch()
-		lazy_title.set_active(conf.window_title_lazy)
+		lazy_title.set_active(app.window_title_lazy)
 		lazy_title_label.set_mnemonic_widget(lazy_title)
 		prefs_grid.attach(lazy_title, 4, 4, 1, 1)
 		pause_expansion_label = Gtk.Label.new_with_mnemonic('_Pause expansion')
 		prefs_grid.attach(pause_expansion_label, 0, 5, 1, 1)
 		self.pause_expansion = Gtk.Label()
-		if conf.pause_service:
+		if app.pause_service:
 			pause_modifiers = ''
-			for modifier in conf.pause_service[1]:
+			for modifier in app.pause_service[1]:
 				pause_modifiers += modifier
 			self.pause_expansion.set_text(
-				pause_modifiers + conf.pause_service[0])
+				pause_modifiers + app.pause_service[0])
 		pause_expansion_frame = Gtk.Frame(shadow_type=Gtk.ShadowType.IN)
 		pause_expansion_frame.add(self.pause_expansion)
 		prefs_grid.attach(pause_expansion_frame, 2, 5, 2, 1)
@@ -278,11 +278,11 @@ class ManagerUI(Gtk.Window):
 		show_manager_label = Gtk.Label.new_with_mnemonic('_Show manager')
 		prefs_grid.attach(show_manager_label, 0, 6, 1, 1)
 		self.show_manager = Gtk.Label()
-		if conf.show_manager:
+		if app.show_manager:
 			show_modifiers = ''
-			for modifier in conf.show_manager[1]:
+			for modifier in app.show_manager[1]:
 				show_modifiers += modifier
-			self.show_manager.set_text(show_modifiers + conf.show_manager[0])
+			self.show_manager.set_text(show_modifiers + app.show_manager[0])
 		show_manager_frame = Gtk.Frame(shadow_type=Gtk.ShadowType.IN)
 		show_manager_frame.add(self.show_manager)
 		prefs_grid.attach(show_manager_frame, 2, 6, 2, 1)
@@ -332,8 +332,8 @@ class ManagerUI(Gtk.Window):
 	def load_phrases(self):
 
 		seen_paths = {'.': None}
-		for p_uuid in conf._phrases:
-			phrase = conf._phrases[p_uuid]
+		for p_uuid in app._phrases:
+			phrase = app._phrases[p_uuid]
 			if phrase['path'] in seen_paths:
 				self.treestore.append(
 					seen_paths[phrase['path']],
@@ -397,7 +397,7 @@ class ManagerUI(Gtk.Window):
 				else:
 					path = self.get_rel_path(parent_iter)
 					p_uuid = self.treestore[child_iter][0]
-					conf._phrases_manager.edit(p_uuid, path=path)
+					app._phrases_manager.edit(p_uuid, path=path)
 				child_iter = self.treestore.iter_next(child_iter)
 
 		if self.treestore[path][0] == '0':
@@ -407,7 +407,7 @@ class ManagerUI(Gtk.Window):
 		else:
 			self.treestore[path][2] = text
 			p_uuid = self.treestore[path][0]
-			conf._phrases_manager.edit(p_uuid, name=text + '.json')
+			app._phrases_manager.edit(p_uuid, name=text + '.json')
 		self.sort_treeview()
 
 	def new_phrase(self, menu_item):
@@ -424,7 +424,7 @@ class ManagerUI(Gtk.Window):
 			parent_iter = model.iter_parent(tree_iter)
 			path = self.get_rel_path(tree_iter)
 		name = self.get_new_phrase_name(model, parent_iter)
-		p_uuid = conf._phrases_manager.new(name + '.json', path=path)
+		p_uuid = app._phrases_manager.new(name + '.json', path=path)
 		model.append(parent_iter, [p_uuid, 'document', name])
 		self.sort_treeview()
 
@@ -455,17 +455,17 @@ class ManagerUI(Gtk.Window):
 				if model[child_iter][0] == '0':
 					remove_children(model, child_iter)
 				else:
-					conf._phrases_manager.remove(model[child_iter][0])
+					app._phrases_manager.remove(model[child_iter][0])
 				model.remove(child_iter)
 
 		model, tree_iter = self.selection.get_selected()
 		if tree_iter is not None:
 			if model[tree_iter][0] != '0':
-				conf._phrases_manager.remove(model[tree_iter][0])
+				app._phrases_manager.remove(model[tree_iter][0])
 				model.remove(tree_iter)
 			else:
 				delete = True
-				if conf.warn_folder_delete:
+				if app.warn_folder_delete:
 					dialog = Gtk.MessageDialog(self, 0, Gtk.MessageType.WARNING,
 						Gtk.ButtonsType.OK_CANCEL, 'Delete folder')
 					dialog.format_secondary_text(
@@ -515,7 +515,7 @@ class ManagerUI(Gtk.Window):
 					tree_iter = model.insert(dest, -1, new_row)
 					p_path = self.get_rel_path(model.iter_parent(tree_iter))
 					p_uuid = self.treestore[tree_iter][0]
-					conf._phrases_manager.edit(p_uuid, path=p_path, name=p_name)
+					app._phrases_manager.edit(p_uuid, path=p_path, name=p_name)
 					model.remove(child_iter)
 
 		model = widget.get_model()
@@ -538,7 +538,7 @@ class ManagerUI(Gtk.Window):
 				p_name = content[2] + ' ({})'.format(name_count)
 			new_row = [content[0], content[1], p_name]
 			p_name += '.json'
-			conf._phrases_manager.edit(content[0], path=p_path, name=p_name)
+			app._phrases_manager.edit(content[0], path=p_path, name=p_name)
 			print(dest)
 			model.insert(dest, -1, new_row)
 		else:
@@ -564,7 +564,7 @@ class ManagerUI(Gtk.Window):
 			p_uuid = model[tree_iter][0]
 		if p_uuid != '0':
 			self.right_grid.set_sensitive(True)
-			phrase = conf._phrases[p_uuid]
+			phrase = app._phrases[p_uuid]
 			if phrase['script']:
 				self.command.set_active(True)
 			else:
@@ -638,10 +638,10 @@ class ManagerUI(Gtk.Window):
 
 	def capture_hotkey(self, widget, event, callback):
 
-		keysym = conf._interface.keycode_to_keysym(event.hardware_keycode)
+		keysym = app._interface.keycode_to_keysym(event.hardware_keycode)
 		if keysym not in CONSTANTS.MODIFIERS:
-			string = conf._interface.lookup_string(keysym)
-			index, modifiers = conf._interface.translate_state(
+			string = app._interface.lookup_string(keysym)
+			index, modifiers = app._interface.translate_state(
 				event.state, event.hardware_keycode)
 			modifier_string = ''
 			for modifier in modifiers:
@@ -659,7 +659,7 @@ class ManagerUI(Gtk.Window):
 	def set_window_class(self, widget):
 
 		if widget.get_active():
-			window_class = conf._interface.active_window_class
+			window_class = app._interface.active_window_class
 			get_class_thread = threading.Thread(
 				target=self.get_window_class,
 				args=(widget, window_class),
@@ -669,12 +669,12 @@ class ManagerUI(Gtk.Window):
 	def get_window_class(self, widget, window_class):
 
 		while widget.get_active():
-			if window_class == conf._interface.active_window_class:
+			if window_class == app._interface.active_window_class:
 				time.sleep(0.5)
 			else:
 				filter_list = self.filter_class.get_text().split(',')
-				if conf._interface.active_window_class not in filter_list:
-					filter_list.append(conf._interface.active_window_class)
+				if app._interface.active_window_class not in filter_list:
+					filter_list.append(app._interface.active_window_class)
 				filter_class = ','.join(filter_list)
 				GLib.idle_add(self.filter_class.set_text, filter_class)
 				GLib.idle_add(widget.set_active, False)
@@ -682,7 +682,7 @@ class ManagerUI(Gtk.Window):
 	def set_window_title(self, widget):
 
 		if widget.get_active():
-			window_title = conf._interface.active_window_title
+			window_title = app._interface.active_window_title
 			get_title_thread = threading.Thread(
 				target=self.get_window_title,
 				args=(widget, window_title),
@@ -692,10 +692,10 @@ class ManagerUI(Gtk.Window):
 	def get_window_title(self, widget, window_title):
 
 		while widget.get_active():
-			if window_title == conf._interface.active_window_title:
+			if window_title == app._interface.active_window_title:
 				time.sleep(0.5)
 			else:
-				filter_title = conf._interface.active_window_title
+				filter_title = app._interface.active_window_title
 				GLib.idle_add(self.filter_title.set_text, filter_title)
 				GLib.idle_add(widget.set_active, False)
 
@@ -734,7 +734,7 @@ class ManagerUI(Gtk.Window):
 				p_filter_title = (filter_title, self.filter_case.get_active())
 			else:
 				p_filter_title = None
-			conf._phrases_manager.edit(
+			app._phrases_manager.edit(
 				p_uuid, body=p_body, script=self.command.get_active(),
 				hotstring=p_hotstring, trigger=p_trigger, hotkey=p_hotkey,
 				send=p_send, window_class=p_filter_class,
@@ -752,34 +752,34 @@ class ManagerUI(Gtk.Window):
 				subprocess.Popen(['xpander-indicator'])
 			except FileNotFoundError:
 				subprocess.Popen(['./xpander-indicator'])
-			conf._interface.stop()
-			conf._service.stop()
+			app._interface.stop()
+			app._service.stop()
 			Gtk.main_quit()
 			sys.exit(0)
 
 	def set_phrase_dir(self, widget):
 
-		conf._conf_manager.edit('phrases_dir', widget.get_filename())
+		app._conf_manager.edit('phrases_dir', widget.get_filename())
 		self.restart_app('Phrase editing and creation will not'
 			' function corectly until application is restarted.')
 
 	def set_indicator_theme(self, widget, pspec):
 
-		conf._conf_manager.edit('indicator_theme_light', widget.get_active())
+		app._conf_manager.edit('indicator_theme_light', widget.get_active())
 		self.restart_app(
 			'Changes will not take effect until application is restarted.')
 
 	def folder_warning_toggle(self, widget, pspec):
 
-		conf._conf_manager.edit('warn_folder_delete', widget.get_active())
+		app._conf_manager.edit('warn_folder_delete', widget.get_active())
 
 	def backspace_undo_toggle(self, widget, pspec):
 
-		conf._conf_manager.edit('backspace_undo', widget.get_active())
+		app._conf_manager.edit('backspace_undo', widget.get_active())
 
 	def lazy_title_toggle(self, widget, pspec):
 
-		conf._conf_manager.edit('window_title_lazy', widget.get_active())
+		app._conf_manager.edit('window_title_lazy', widget.get_active())
 
 	def get_pause_expansion(self, widget):
 
@@ -797,7 +797,7 @@ class ManagerUI(Gtk.Window):
 						if modifier is not None])
 		else:
 			g_hotkey = None
-		conf._conf_manager.edit('pause_service', g_hotkey)
+		app._conf_manager.edit('pause_service', g_hotkey)
 		self.pause_expansion.set_text(string)
 
 	def get_show_manager(self, widget):
@@ -816,5 +816,5 @@ class ManagerUI(Gtk.Window):
 						if modifier is not None])
 		else:
 			g_hotkey = None
-		conf._conf_manager.edit('show_manager', g_hotkey)
+		app._conf_manager.edit('show_manager', g_hotkey)
 		self.show_manager.set_text(string)

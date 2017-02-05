@@ -19,7 +19,7 @@ from gi.repository import Gtk, Gdk, GLib
 from Xlib import X, display
 from Xlib.ext import record
 from Xlib.protocol import rq, event
-from . import conf, CONSTANTS
+from . import app, CONSTANTS
 
 MainLogger = logging.getLogger('Xpander')
 Logger = MainLogger.getChild(__name__)
@@ -45,7 +45,7 @@ class Interface(object):
 		active_window_class - str, string representation of currently focused
 			window class;
 		active_window_title - str, string representation of currently focused
-			window title, contents depend on conf.window_title_lazy var;
+			window title, contents depend on app.window_title_lazy var;
 		clipboard_contents - str, string representation of text in clipboard;
 		root_window - obj, X root window object;
 		xkb-current - str, currently active layout group;
@@ -487,7 +487,7 @@ class Interface(object):
 	def __handle_key_event(self, type_, keycode, state):
 		"""Further process keyboard event and send data to callback."""
 
-		if not conf.window_title_lazy:
+		if not app.window_title_lazy:
 			self.active_window_title = self.get_window_title(self.active_window)
 
 		keypress = (type_ == X.KeyPress)
@@ -496,7 +496,7 @@ class Interface(object):
 		if keysym not in CONSTANTS.NO_INDEX:
 			keysym = self.keycode_to_keysym(keycode, index)
 
-		conf._service(keysym, keypress, modifiers)
+		app._service(keysym, keypress, modifiers)
 
 	def __set_modifier_masks(self):
 		"""Parse self.__MODIFIER_MAP and update self.MODIFIER_MASK."""
