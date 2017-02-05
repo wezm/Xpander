@@ -79,7 +79,7 @@ class Interface(object):
 			events to pass.
 	"""
 
-	def __init__(self):
+	def __init__(self, handle_key_event_callback):
 		"""Initialize layout watcher, event hook and event loop.
 
 			Arguments:
@@ -92,6 +92,8 @@ class Interface(object):
 
 			modifiers keys are <Shift>, <AltGr>, <Alt>, <Control> and <Super>.
 		"""
+
+		self.handle_key_event_callback = handle_key_event_callback
 
 		# Main loop
 		self._main_loop = threading.Thread(
@@ -496,7 +498,7 @@ class Interface(object):
 		if keysym not in CONSTANTS.NO_INDEX:
 			keysym = self.keycode_to_keysym(keycode, index)
 
-		conf._service(keysym, keypress, modifiers)
+		self.handle_key_event_callback(keysym, keypress, modifiers)
 
 	def __set_modifier_masks(self):
 		"""Parse self.__MODIFIER_MAP and update self.MODIFIER_MASK."""

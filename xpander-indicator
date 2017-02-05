@@ -18,7 +18,6 @@ _app = app.App()
 conf._conf_manager = _app._conf_manager
 
 conf._phrases_manager = _app._phrases_manager
-conf._service = _app._service # This is only needed by only line in XInterface now
 conf._interface = _app._interface
 
 _app.start()

@@ -8,7 +8,7 @@ class App:
 
         self._phrases_manager = manager.Phrases(self._hotkeys_manager)
         self._service = service.Service()
-        self._interface = XInterface.Interface()
+        self._interface = XInterface.Interface(self.handle_key_event)
 
     def start(self):
         self._hotkeys_manager.grab_hotkeys()
@@ -31,3 +31,6 @@ class App:
     def toggle_service(self):
         self._service.toggle_service()
         return conf._run_service # FIXME: Don't reach into conf
+
+    def handle_key_event(self, *args):
+        self._service(*args)
