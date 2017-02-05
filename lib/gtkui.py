@@ -821,8 +821,9 @@ class ManagerUI(Gtk.Window):
 
 class Indicator(object):
 
-	def __init__(self, quit_callback):
+	def __init__(self, quit_callback, toggle_service_callback):
 		self.quit_callback = quit_callback
+		self.toggle_service_callback = toggle_service_callback
 
 		if conf.indicator_theme_light:
 			if os.path.exists('data/xpander-active.svg'):
@@ -869,8 +870,8 @@ class Indicator(object):
 
 	def toggle_service(self, menu_item):
 
-		conf._service.toggle_service()
-		if conf._run_service:
+		run_service = self.toggle_service_callback()
+		if run_service:
 			GLib.idle_add(self.indicator.set_icon, self.indicator_active)
 		else:
 			GLib.idle_add(self.indicator.set_icon, self.indicator_paused)

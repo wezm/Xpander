@@ -18,8 +18,16 @@ class App:
 
         self._service.start()
         self._interface.start()
-        gtkui.Indicator(self.quit)
+        gtkui.Indicator(
+            quit_callback=self.quit,
+            toggle_service_callback=self.toggle_service
+        )
 
     def quit(self):
         self._interface.stop()
         self._service.stop()
+
+    def toggle_service(self):
+        self._service.toggle_service()
+        return conf._run_service # FIXME: Don't reach into conf
+
