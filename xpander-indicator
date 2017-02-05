@@ -1,29 +1,25 @@
 #!/usr/bin/env python3
 
-import os
-import sys
 import logging
-from gi.repository import Gtk, GLib
 
 Logger = logging.getLogger('Xpander')
 
-try:
-	from Xpander import conf, manager, service, XInterface, gtkui
-except ImportError:
-	Logger.exception('Running from source.')
-	from lib import conf, manager, service, XInterface, gtkui
+#  try:
+#          from Xpander import conf, manager, service, XInterface, gtkui
+#  except ImportError:
+#          Logger.exception('Running from source.')
+#          from lib import conf, manager, service, XInterface, gtkui
+from lib import conf, app
 
 
-conf._hotkeys_manager = manager.Hotkeys()
-conf._conf_manager = manager.Conf(conf._hotkeys)
+_app = app.App()
 
-conf._phrases_manager = manager.Phrases(conf._hotkeys_manager)
-conf._service = service.Service()
-conf._interface = XInterface.Interface()
-conf._hotkeys_manager.grab_hotkeys()
-# Necessary to actually grab tab key, hopefully focus is not
-# in a textbox during startup.
-conf._interface.send_string('\t')
-conf._service.start()
-conf._interface.start()
-app.App()
+# TODO: Remove the need for these
+conf._hotkeys_manager = _app._hotkeys_manager
+conf._conf_manager = _app._conf_manager
+
+conf._phrases_manager = _app._phrases_manager
+conf._service = _app._service
+conf._interface = _app._interface
+
+_app.start()
