@@ -42,9 +42,10 @@ SEND = collections.OrderedDict(
 
 class ManagerUI(Gtk.Window):
 
-	def __init__(self, config_manager, restart_app_callback):
+	def __init__(self, config_manager, phrases_manager, restart_app_callback):
 
 		self._config_manager = config_manager
+		self._phrases_manager = phrases_manager
 		self.restart_app_callback = restart_app_callback
 		Gtk.Window.__init__(self, title="Xpander")
 		self.set_border_width(6)
@@ -399,7 +400,7 @@ class ManagerUI(Gtk.Window):
 				else:
 					path = self.get_rel_path(parent_iter)
 					p_uuid = self.treestore[child_iter][0]
-					conf._phrases_manager.edit(p_uuid, path=path)
+					self._phrases_manager.edit(p_uuid, path=path)
 				child_iter = self.treestore.iter_next(child_iter)
 
 		if self.treestore[path][0] == '0':
@@ -409,7 +410,7 @@ class ManagerUI(Gtk.Window):
 		else:
 			self.treestore[path][2] = text
 			p_uuid = self.treestore[path][0]
-			conf._phrases_manager.edit(p_uuid, name=text + '.json')
+			self._phrases_manager.edit(p_uuid, name=text + '.json')
 		self.sort_treeview()
 
 	def new_phrase(self, menu_item):
@@ -426,7 +427,7 @@ class ManagerUI(Gtk.Window):
 			parent_iter = model.iter_parent(tree_iter)
 			path = self.get_rel_path(tree_iter)
 		name = self.get_new_phrase_name(model, parent_iter)
-		p_uuid = conf._phrases_manager.new(name + '.json', path=path)
+		p_uuid = self._phrases_manager.new(name + '.json', path=path)
 		model.append(parent_iter, [p_uuid, 'document', name])
 		self.sort_treeview()
 
@@ -457,13 +458,13 @@ class ManagerUI(Gtk.Window):
 				if model[child_iter][0] == '0':
 					remove_children(model, child_iter)
 				else:
-					conf._phrases_manager.remove(model[child_iter][0])
+					self._phrases_manager.remove(model[child_iter][0])
 				model.remove(child_iter)
 
 		model, tree_iter = self.selection.get_selected()
 		if tree_iter is not None:
 			if model[tree_iter][0] != '0':
-				conf._phrases_manager.remove(model[tree_iter][0])
+				self._phrases_manager.remove(model[tree_iter][0])
 				model.remove(tree_iter)
 			else:
 				delete = True
@@ -517,7 +518,7 @@ class ManagerUI(Gtk.Window):
 					tree_iter = model.insert(dest, -1, new_row)
 					p_path = self.get_rel_path(model.iter_parent(tree_iter))
 					p_uuid = self.treestore[tree_iter][0]
-					conf._phrases_manager.edit(p_uuid, path=p_path, name=p_name)
+					self._phrases_manager.edit(p_uuid, path=p_path, name=p_name)
 					model.remove(child_iter)
 
 		model = widget.get_model()
@@ -540,7 +541,7 @@ class ManagerUI(Gtk.Window):
 				p_name = content[2] + ' ({})'.format(name_count)
 			new_row = [content[0], content[1], p_name]
 			p_name += '.json'
-			conf._phrases_manager.edit(content[0], path=p_path, name=p_name)
+			self._phrases_manager.edit(content[0], path=p_path, name=p_name)
 			print(dest)
 			model.insert(dest, -1, new_row)
 		else:
@@ -736,7 +737,7 @@ class ManagerUI(Gtk.Window):
 				p_filter_title = (filter_title, self.filter_case.get_active())
 			else:
 				p_filter_title = None
-			conf._phrases_manager.edit(
+			self._phrases_manager.edit(
 				p_uuid, body=p_body, script=self.command.get_active(),
 				hotstring=p_hotstring, trigger=p_trigger, hotkey=p_hotkey,
 				send=p_send, window_class=p_filter_class,
@@ -822,7 +823,7 @@ class ManagerUI(Gtk.Window):
 
 class Indicator(object):
 
-	def __init__(self, config_manager, quit_callback, toggle_service_callback, restart_callback):
+	def __init__(self, config_manager, phrases_manager, quit_callback, toggle_service_callback, restart_callback):
 		self.quit_callback = quit_callback
 		self.toggle_service_callback = toggle_service_callback
 
@@ -847,7 +848,7 @@ class Indicator(object):
 			AppIndicator3.IndicatorCategory.APPLICATION_STATUS)
 		self.indicator.set_status(AppIndicator3.IndicatorStatus.ACTIVE)
 		self.indicator.set_menu(self.build_menu())
-		self.manager_ui = ManagerUI(config_manager, restart_callback)
+		self.manager_ui = ManagerUI(config_manager, phrases_manager, restart_callback)
 		Gtk.main()
 
 	def build_menu(self):

@@ -15,7 +15,6 @@ from lib import conf, app
 _app = app.App()
 
 # TODO: Remove the need for these
-conf._phrases_manager = _app._phrases_manager
 conf._interface = _app._interface
 
 _app.start()
