@@ -42,8 +42,9 @@ SEND = collections.OrderedDict(
 
 class ManagerUI(Gtk.Window):
 
-	def __init__(self, restart_app_callback):
+	def __init__(self, config_manager, restart_app_callback):
 
+		self._config_manager = config_manager
 		self.restart_app_callback = restart_app_callback
 		Gtk.Window.__init__(self, title="Xpander")
 		self.set_border_width(6)
@@ -759,27 +760,27 @@ class ManagerUI(Gtk.Window):
 
 	def set_phrase_dir(self, widget):
 
-		conf._conf_manager.edit('phrases_dir', widget.get_filename())
+		self._config_manager.edit('phrases_dir', widget.get_filename())
 		self.restart_app('Phrase editing and creation will not'
 			' function corectly until application is restarted.')
 
 	def set_indicator_theme(self, widget, pspec):
 
-		conf._conf_manager.edit('indicator_theme_light', widget.get_active())
+		self._config_manager.edit('indicator_theme_light', widget.get_active())
 		self.restart_app(
 			'Changes will not take effect until application is restarted.')
 
 	def folder_warning_toggle(self, widget, pspec):
 
-		conf._conf_manager.edit('warn_folder_delete', widget.get_active())
+		self._config_manager.edit('warn_folder_delete', widget.get_active())
 
 	def backspace_undo_toggle(self, widget, pspec):
 
-		conf._conf_manager.edit('backspace_undo', widget.get_active())
+		self._config_manager.edit('backspace_undo', widget.get_active())
 
 	def lazy_title_toggle(self, widget, pspec):
 
-		conf._conf_manager.edit('window_title_lazy', widget.get_active())
+		self._config_manager.edit('window_title_lazy', widget.get_active())
 
 	def get_pause_expansion(self, widget):
 
@@ -797,7 +798,7 @@ class ManagerUI(Gtk.Window):
 						if modifier is not None])
 		else:
 			g_hotkey = None
-		conf._conf_manager.edit('pause_service', g_hotkey)
+		self._config_manager.edit('pause_service', g_hotkey)
 		self.pause_expansion.set_text(string)
 
 	def get_show_manager(self, widget):
@@ -816,12 +817,12 @@ class ManagerUI(Gtk.Window):
 						if modifier is not None])
 		else:
 			g_hotkey = None
-		conf._conf_manager.edit('show_manager', g_hotkey)
+		self._config_manager.edit('show_manager', g_hotkey)
 		self.show_manager.set_text(string)
 
 class Indicator(object):
 
-	def __init__(self, quit_callback, toggle_service_callback, restart_callback):
+	def __init__(self, config_manager, quit_callback, toggle_service_callback, restart_callback):
 		self.quit_callback = quit_callback
 		self.toggle_service_callback = toggle_service_callback
 
@@ -846,7 +847,7 @@ class Indicator(object):
 			AppIndicator3.IndicatorCategory.APPLICATION_STATUS)
 		self.indicator.set_status(AppIndicator3.IndicatorStatus.ACTIVE)
 		self.indicator.set_menu(self.build_menu())
-		self.manager_ui = ManagerUI(restart_callback)
+		self.manager_ui = ManagerUI(config_manager, restart_callback)
 		Gtk.main()
 
 	def build_menu(self):

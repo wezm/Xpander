@@ -19,6 +19,7 @@ class App:
         self._service.start()
         self._interface.start()
         gtkui.Indicator(
+            self._conf_manager,
             quit_callback=self.stop,
             toggle_service_callback=self.toggle_service,
             restart_callback=self.stop
