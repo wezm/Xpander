@@ -188,11 +188,18 @@ class Phrases(object):
 	def __init__(self, hotkeys):
 
 		self.hotkeys = hotkeys
-		conf._phrases = {}
+		self._phrases = {}
 		self.load()
-		for p_uuid, phrase in conf._phrases.items():
+		for p_uuid, phrase in self._phrases.items():
 			if phrase['hotkey']:
 				conf._hotkeys.append(phrase['hotkey'])
+
+	def __getitem__(self, key):
+		"""Lookup an item in the phrases dict"""
+		return self._phrases[key]
+
+	def uuids(self):
+		return self._phrases.keys()
 
 	def load(self, folder=conf.phrases_dir):
 		"""Recursively load phrases from conf.phrases_dir into phrases dict."""
@@ -212,7 +219,7 @@ class Phrases(object):
 							phrase['path'] = os.path.relpath(
 								folder, start=conf.phrases_dir)
 							update = True
-						conf._phrases[phrase['uuid']] = phrase
+						self._phrases[phrase['uuid']] = phrase
 					except ValueError:
 						Logger.exception('Invalid phrase file.')
 			except IsADirectoryError:
@@ -266,7 +273,7 @@ class Phrases(object):
 			'window_class': window_class,
 			'window_title': window_title,
 			'timestamp': int(time.time())}
-		conf._phrases[p_uuid] = phrase
+		self._phrases[p_uuid] = phrase
 		if not os.path.isdir(os.path.dirname(file_path)):
 			os.makedirs(os.path.dirname(file_path), exist_ok=True)
 		with open(file_path, 'w') as p_file:
@@ -281,65 +288,65 @@ class Phrases(object):
 		"""Edit phrase, update phrase dict and replace phrase file."""
 
 		if hotkey != 'KEEP' and hotkey is not None:
-			if conf._phrases[p_uuid]['hotkey'] is not None:
-				self.hotkeys.ungrab_hotkey(conf._phrases[p_uuid]['hotkey'])
+			if self._phrases[p_uuid]['hotkey'] is not None:
+				self.hotkeys.ungrab_hotkey(self._phrases[p_uuid]['hotkey'])
 			self.hotkeys.grab_hotkey(hotkey)
 
 		phrase = {
 			'uuid': p_uuid,
-			'name': name if name != 'KEEP' else conf._phrases[p_uuid]['name'],
-			'body': body if body != 'KEEP' else conf._phrases[p_uuid]['body'],
-			'path': path if path != 'KEEP' else conf._phrases[p_uuid]['path'],
+			'name': name if name != 'KEEP' else self._phrases[p_uuid]['name'],
+			'body': body if body != 'KEEP' else self._phrases[p_uuid]['body'],
+			'path': path if path != 'KEEP' else self._phrases[p_uuid]['path'],
 			'script': (script if script != 'KEEP'
-				else conf._phrases[p_uuid]['script']),
-			'send': send if send != 'KEEP' else conf._phrases[p_uuid]['send'],
+				else self._phrases[p_uuid]['script']),
+			'send': send if send != 'KEEP' else self._phrases[p_uuid]['send'],
 			'hotstring': (hotstring if hotstring != 'KEEP'
-				else conf._phrases[p_uuid]['hotstring']),
+				else self._phrases[p_uuid]['hotstring']),
 			'trigger': (trigger if trigger != 'KEEP'
-				else conf._phrases[p_uuid]['trigger']),
+				else self._phrases[p_uuid]['trigger']),
 			'hotkey': (hotkey if hotkey != 'KEEP'
-				else conf._phrases[p_uuid]['hotkey']),
+				else self._phrases[p_uuid]['hotkey']),
 			'window_class': (window_class if window_class != 'KEEP'
-				else conf._phrases[p_uuid]['window_class']),
+				else self._phrases[p_uuid]['window_class']),
 			'window_title': (window_title if window_title != 'KEEP'
-				else conf._phrases[p_uuid]['window_title']),
+				else self._phrases[p_uuid]['window_title']),
 			'timestamp': int(time.time())}
 
 		move = False
-		if (phrase['path'] != conf._phrases[p_uuid]['path'] or
-			phrase['name'] != conf._phrases[p_uuid]['name']):
+		if (phrase['path'] != self._phrases[p_uuid]['path'] or
+			phrase['name'] != self._phrases[p_uuid]['name']):
 			move = True
 			old_path = os.path.abspath(os.path.join(
 				conf.phrases_dir,
-				conf._phrases[p_uuid]['path'],
-				conf._phrases[p_uuid]['name']))
+				self._phrases[p_uuid]['path'],
+				self._phrases[p_uuid]['name']))
 			new_path = os.path.abspath(os.path.join(
 				conf.phrases_dir,
 				phrase['path'],
 				phrase['name']))
 
-		conf._phrases[p_uuid] = phrase
+		self._phrases[p_uuid] = phrase
 		if move:
 			os.renames(old_path, new_path)
 
 		with open(os.path.abspath(os.path.join(conf.phrases_dir,
-			conf._phrases[p_uuid]['path'],
-			conf._phrases[p_uuid]['name'])), 'w') as p_file:
+			self._phrases[p_uuid]['path'],
+			self._phrases[p_uuid]['name'])), 'w') as p_file:
 			p_file.write(json.dumps(phrase, indent='\t', sort_keys=True))
 
 	def remove(self, p_uuid):
 		"""Remove phrase from phrases dict and delete phrase file."""
 
-		if conf._phrases[p_uuid]['hotkey'] is not None:
-			self.hotkeys.ungrab_hotkey(conf._phrases[p_uuid]['hotkey'])
+		if self._phrases[p_uuid]['hotkey'] is not None:
+			self.hotkeys.ungrab_hotkey(self._phrases[p_uuid]['hotkey'])
 
 		p_file = os.path.abspath(os.path.join(
-			conf.phrases_dir, conf._phrases[p_uuid]['path'],
-			conf._phrases[p_uuid]['name']))
+			conf.phrases_dir, self._phrases[p_uuid]['path'],
+			self._phrases[p_uuid]['name']))
 		p_dir = os.path.abspath(os.path.join(
-			conf.phrases_dir, conf._phrases[p_uuid]['path']))
+			conf.phrases_dir, self._phrases[p_uuid]['path']))
 
-		del conf._phrases[p_uuid]
+		del self._phrases[p_uuid]
 
 		try:
 			os.remove(p_file)

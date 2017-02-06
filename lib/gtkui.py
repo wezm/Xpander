@@ -335,8 +335,8 @@ class ManagerUI(Gtk.Window):
 	def load_phrases(self):
 
 		seen_paths = {'.': None}
-		for p_uuid in conf._phrases:
-			phrase = conf._phrases[p_uuid]
+		for p_uuid in self._phrases_manager.uuids():
+			phrase = self._phrases_manager[p_uuid]
 			if phrase['path'] in seen_paths:
 				self.treestore.append(
 					seen_paths[phrase['path']],
@@ -567,7 +567,7 @@ class ManagerUI(Gtk.Window):
 			p_uuid = model[tree_iter][0]
 		if p_uuid != '0':
 			self.right_grid.set_sensitive(True)
-			phrase = conf._phrases[p_uuid]
+			phrase = self._phrases_manager[p_uuid]
 			if phrase['script']:
 				self.command.set_active(True)
 			else:

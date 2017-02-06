@@ -17,12 +17,12 @@ Logger = MainLogger.getChild(__name__)
 
 class Service(threading.Thread):
 
-	def __init__(self):
+	def __init__(self, phrases_manager):
 
+		self._phrases_manager = phrases_manager
 		threading.Thread.__init__(self)
 		self.daemon = True
 		self.name = 'Listener service'
-		self.phrases = conf._phrases
 		conf._run_service = True
 		self.__queue = queue.Queue()
 		self.input_stack = collections.deque(maxlen=128)
@@ -181,8 +181,8 @@ class Service(threading.Thread):
 	def match_hotstring(self, char):
 
 		if conf._run_service:
-			for p_uuid in conf._phrases:
-				phrase = conf._phrases[p_uuid]
+			for p_uuid in self._phrases_manager.uuids():
+				phrase = self._phrases_manager[p_uuid]
 				if phrase['hotstring'] is not None:
 					if self.match_window_filter(phrase):
 						if self.TRIGGER[phrase['trigger']](char):
@@ -195,8 +195,8 @@ class Service(threading.Thread):
 	def match_hotkey(self, char, modifiers):
 
 		if conf._run_service:
-			for p_uuid in self.phrases:
-				phrase = self.phrases[p_uuid]
+			for p_uuid in self._phrases_manager.uuids():
+				phrase = self._phrases_manager[p_uuid]
 				if phrase['hotkey'] is not None:
 					if self.match_window_filter(phrase):
 						modifier_match = 0
