@@ -17,9 +17,10 @@ Logger = MainLogger.getChild(__name__)
 
 class Service(threading.Thread):
 
-	def __init__(self, phrases_manager):
+	def __init__(self, phrases_manager, interface):
 
 		self._phrases_manager = phrases_manager
+		self._interface = interface
 		threading.Thread.__init__(self)
 		self.daemon = True
 		self.name = 'Listener service'
@@ -80,7 +81,7 @@ class Service(threading.Thread):
 				modifiers['<Super>'] or
 				modifiers['<Control>'] or
 				modifiers['<Alt>'])
-			char = conf._interface.lookup_string(keysym)
+			char = self._interface.lookup_string(keysym)
 			if not modifier_state:
 				if len(char) == 1:
 					self.input_stack.append(char)
@@ -90,13 +91,13 @@ class Service(threading.Thread):
 						if char == '\t' and not phrase:
 							if self.__caret_pos:
 								try:
-									conf._interface.caret_right(
+									self._interface.caret_right(
 										next(self.__caret_pos))
 								except StopIteration:
 									self.__caret_pos = None
-									conf._interface.send_string('\t')
+									self._interface.send_string('\t')
 							else:
-								conf._interface.send_string('\t')
+								self._interface.send_string('\t')
 						elif phrase:
 							if char == '\t':
 								self.trigger_phrase(phrase)
@@ -107,9 +108,9 @@ class Service(threading.Thread):
 						if self.__last_expanded:
 							if self.__caret_pos:
 								for caret_pos in self.__caret_pos:
-									conf._interface.caret_right(caret_pos)
+									self._interface.caret_right(caret_pos)
 								self.__caret_pos = None
-							conf._interface.send_backspace(
+							self._interface.send_backspace(
 								len(self.__last_expanded) - 1)
 							self.__last_expanded = None
 					try:
@@ -165,16 +166,16 @@ class Service(threading.Thread):
 
 		filter_match = True
 		if phrase['window_class']:
-			if not conf._interface.active_window_class in phrase['window_class']:
+			if not self._interface.active_window_class in phrase['window_class']:
 				filter_match = False
 		if phrase['window_title']:
 			if phrase['window_title'][1]:
 				if not (phrase['window_title'][0] in
-					conf._interface.active_window_title):
+					self._interface.active_window_title):
 					filter_match = False
 			else:
 				if not (phrase['window_title'][0].casefold() in
-					conf._interface.active_window_title.casefold()):
+					self._interface.active_window_title.casefold()):
 					filter_match = False
 		return filter_match
 
@@ -243,30 +244,30 @@ class Service(threading.Thread):
 					os.path.join(phrase['path'], phrase['name'])))
 				output = ''
 			if remove:
-				conf._interface.send_backspace(
+				self._interface.send_backspace(
 					len(phrase['hotstring']) + len(include_char))
 			self.__last_expanded = output.strip() + include_char
 			self.send_string(output.strip() + include_char, phrase['send'])
 		else:
 			if remove:
-				conf._interface.send_backspace(
+				self._interface.send_backspace(
 					len(phrase['hotstring']) + (len(include_char)))
 			string = self.expand(phrase['body'])
 			self.__last_expanded = string +include_char
 			self.send_string(string + include_char, phrase['send'])
 			if self.__caret_pos:
 				time.sleep(0.05)  # Events may get lost without a pause.
-				conf._interface.caret_left(next(self.__caret_pos))
+				self._interface.caret_left(next(self.__caret_pos))
 
 	def expand(self, string):
 
 		string = time.strftime(string)
 		if '$C' in string:
-			conf._interface.store_clipboard()
-			string = string.replace('$C', conf._interface.clipboard_contents)
+			self._interface.store_clipboard()
+			string = string.replace('$C', self._interface.clipboard_contents)
 		if '$S' in string:
-			conf._interface.store_selection()
-			string = string.replace('$S', conf._interface.selection_contents)
+			self._interface.store_selection()
+			string = string.replace('$S', self._interface.selection_contents)
 		if '$|' in string:
 			self.__caret_pos = self.get_caret_pos(string)
 			string = string.replace('$|', '')
@@ -290,9 +291,9 @@ class Service(threading.Thread):
 	def send_string(self, string, method):
 
 		if method[0] == 0:
-			conf._interface.send_string(string)
+			self._interface.send_string(string)
 		elif method[0] == 1:
-			conf._interface.send_string_clipboard(string, method[1])
+			self._interface.send_string_clipboard(string, method[1])
 
 	def toggle_service(self):
 
