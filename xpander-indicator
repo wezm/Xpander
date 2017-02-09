@@ -1,20 +1,10 @@
 #!/usr/bin/env python3
 
-import logging
-
-Logger = logging.getLogger('Xpander')
-
 #  try:
 #          from Xpander import conf, manager, service, XInterface, gtkui
 #  except ImportError:
 #          Logger.exception('Running from source.')
 #          from lib import conf, manager, service, XInterface, gtkui
-from lib import conf, app
+from lib import app
 
-
-_app = app.App()
-
-# TODO: Remove the need for these
-conf._interface = _app._interface
-
-_app.start()
+app.App().start()
