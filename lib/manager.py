@@ -15,24 +15,27 @@ Logger = MainLogger.getChild(__name__)
 
 class Hotkeys:
 
+	def __init__(self, interface):
+		self._interface = interface
+
 	def grab_hotkey(self, hotkey):
 
-		keycode = conf._interface.lookup_keycode(
-			conf._interface.lookup_keysym(hotkey[0]))
+		keycode = self._interface.lookup_keycode(
+			self._interface.lookup_keysym(hotkey[0]))
 		mask = 0
 		for modifier in hotkey[1]:
-			mask |= conf._interface.MODIFIER_MASK[modifier]
-		conf._interface.grab_key(keycode, mask)
+			mask |= self._interface.MODIFIER_MASK[modifier]
+		self._interface.grab_key(keycode, mask)
 
 
 	def ungrab_hotkey(self, hotkey):
 
-		keycode = conf._interface.lookup_keycode(
-			conf._interface.lookup_keysym(hotkey[0]))
+		keycode = self._interface.lookup_keycode(
+			self._interface.lookup_keysym(hotkey[0]))
 		mask = 0
 		for modifier in hotkey[1]:
-			mask |= conf._interface.MODIFIER_MASK[modifier]
-		conf._interface.ungrab_key(keycode, mask)
+			mask |= self._interface.MODIFIER_MASK[modifier]
+		self._interface.ungrab_key(keycode, mask)
 
 	def grab_hotkeys(self):
 

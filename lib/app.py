@@ -3,11 +3,11 @@ from . import conf, manager, service, XInterface, gtkui, app
 """Main application class"""
 class App:
     def __init__(self):
-        self._hotkeys_manager = manager.Hotkeys()
+        self._interface = XInterface.Interface(self.handle_key_event)
+        self._hotkeys_manager = manager.Hotkeys(self._interface)
         self._conf_manager = manager.Conf(self._hotkeys_manager)
 
         self._phrases_manager = manager.Phrases(self._hotkeys_manager)
-        self._interface = XInterface.Interface(self.handle_key_event)
         self._service = service.Service(self._phrases_manager, self._interface)
 
     def start(self):
