@@ -42,10 +42,11 @@ SEND = collections.OrderedDict(
 
 class ManagerUI(Gtk.Window):
 
-	def __init__(self, config_manager, phrases_manager, restart_app_callback):
+	def __init__(self, config_manager, phrases_manager, interface, restart_app_callback):
 
 		self._config_manager = config_manager
 		self._phrases_manager = phrases_manager
+		self._interface = interface
 		self.restart_app_callback = restart_app_callback
 		Gtk.Window.__init__(self, title="Xpander")
 		self.set_border_width(6)
@@ -641,10 +642,10 @@ class ManagerUI(Gtk.Window):
 
 	def capture_hotkey(self, widget, event, callback):
 
-		keysym = conf._interface.keycode_to_keysym(event.hardware_keycode)
+		keysym = self._interface.keycode_to_keysym(event.hardware_keycode)
 		if keysym not in CONSTANTS.MODIFIERS:
-			string = conf._interface.lookup_string(keysym)
-			index, modifiers = conf._interface.translate_state(
+			string = self._interface.lookup_string(keysym)
+			index, modifiers = self._interface.translate_state(
 				event.state, event.hardware_keycode)
 			modifier_string = ''
 			for modifier in modifiers:
@@ -662,7 +663,7 @@ class ManagerUI(Gtk.Window):
 	def set_window_class(self, widget):
 
 		if widget.get_active():
-			window_class = conf._interface.active_window_class
+			window_class = self._interface.active_window_class
 			get_class_thread = threading.Thread(
 				target=self.get_window_class,
 				args=(widget, window_class),
@@ -672,12 +673,12 @@ class ManagerUI(Gtk.Window):
 	def get_window_class(self, widget, window_class):
 
 		while widget.get_active():
-			if window_class == conf._interface.active_window_class:
+			if window_class == self._interface.active_window_class:
 				time.sleep(0.5)
 			else:
 				filter_list = self.filter_class.get_text().split(',')
-				if conf._interface.active_window_class not in filter_list:
-					filter_list.append(conf._interface.active_window_class)
+				if self._interface.active_window_class not in filter_list:
+					filter_list.append(self._interface.active_window_class)
 				filter_class = ','.join(filter_list)
 				GLib.idle_add(self.filter_class.set_text, filter_class)
 				GLib.idle_add(widget.set_active, False)
@@ -685,7 +686,7 @@ class ManagerUI(Gtk.Window):
 	def set_window_title(self, widget):
 
 		if widget.get_active():
-			window_title = conf._interface.active_window_title
+			window_title = self._interface.active_window_title
 			get_title_thread = threading.Thread(
 				target=self.get_window_title,
 				args=(widget, window_title),
@@ -695,10 +696,10 @@ class ManagerUI(Gtk.Window):
 	def get_window_title(self, widget, window_title):
 
 		while widget.get_active():
-			if window_title == conf._interface.active_window_title:
+			if window_title == self._interface.active_window_title:
 				time.sleep(0.5)
 			else:
-				filter_title = conf._interface.active_window_title
+				filter_title = self._interface.active_window_title
 				GLib.idle_add(self.filter_title.set_text, filter_title)
 				GLib.idle_add(widget.set_active, False)
 
@@ -823,7 +824,7 @@ class ManagerUI(Gtk.Window):
 
 class Indicator(object):
 
-	def __init__(self, config_manager, phrases_manager, quit_callback, toggle_service_callback, restart_callback):
+	def __init__(self, manager_ui, quit_callback, toggle_service_callback):
 		self.quit_callback = quit_callback
 		self.toggle_service_callback = toggle_service_callback
 
@@ -848,7 +849,7 @@ class Indicator(object):
 			AppIndicator3.IndicatorCategory.APPLICATION_STATUS)
 		self.indicator.set_status(AppIndicator3.IndicatorStatus.ACTIVE)
 		self.indicator.set_menu(self.build_menu())
-		self.manager_ui = ManagerUI(config_manager, phrases_manager, restart_callback)
+		self.manager_ui = manager_ui
 		Gtk.main()
 
 	def build_menu(self):

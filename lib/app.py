@@ -18,12 +18,17 @@ class App:
 
         self._service.start()
         self._interface.start()
+
+        manager_ui = gtkui.ManagerUI(
+            self._conf_manager,
+            self._phrases_manager,
+            self._interface,
+            restart_app_callback=self.stop
+        )
         gtkui.Indicator(
-            config_manager=self._conf_manager,
-            phrases_manager=self._phrases_manager,
+            manager_ui,
             quit_callback=self.stop,
-            toggle_service_callback=self.toggle_service,
-            restart_callback=self.stop
+            toggle_service_callback=self.toggle_service
         )
 
     def stop(self):
